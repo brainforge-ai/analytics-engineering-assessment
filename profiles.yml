@@ -1,0 +1,9 @@
+# dbt profile for Analytics Engineering Assessment (DuckDB, local)
+# Run from project root: dbt seed && dbt run && dbt test
+
+ae_assessment:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: analytics.duckdb
