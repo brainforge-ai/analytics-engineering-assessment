@@ -1,5 +1,6 @@
 -- Clean customer seed records and surface duplicate-email metadata at the customer_id grain.
 -- clean and dedupe customer records to one row per customer_id
+
 -- ref tables
 with customers_raw as (
 
