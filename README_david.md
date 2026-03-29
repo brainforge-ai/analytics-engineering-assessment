@@ -6,8 +6,9 @@ Notes/ writeup for Brainforge analytics engineering assessment submission.
 
 Setup
 ```bash
-uv sync
+uv sync --group dev
 source .venv/bin/activate
+uv run pre-commit install
 ```
 
 Run dbt
