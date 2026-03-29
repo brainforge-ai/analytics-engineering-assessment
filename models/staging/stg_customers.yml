@@ -5,17 +5,18 @@ models:
     description: |
       Customer staging model built from the raw customer seed.
 
+      Final table grain: one row per customer_id.
 
-      Customers are dedeuplicated based on email, choosing the `customer_id` with earlist `created_at` date.
-      Enrich with country name for country code.
+      This model normalizes email and country fields, preserves every raw
+      customer_id, and surfaces duplicate-email metadata for downstream use.
 
-      Final table grain: one row per normalized email.
+      Enriches by adding business-friendly country name.
     meta:
       data_quality_assumptions:
-        - customer_id - is valid format from source, likely unique but test anyway for safety. 
-        - email - is valid format from source, but normalized with `trim()` and `lower()` for duplicate detection
-        - country - should be ISO 3166-1 alpha-2
-        - created_at - date is valid format from source, 
+        - customer_id - preserved at the source grain and expected to remain unique in staging.
+        - email - normalized with `trim()` and `lower()` before duplicate detection so duplicate-email records can be counted and ranked consistently.
+        - country - standardized to uppercase, with raw `UK` values normalized to `GB` so the code aligns to the country-code reference seed.
+        - created_at - used to rank records within each normalized email group so the earliest row can be flagged as the primary email record.
       suggested_improvements:
         - Test customer_id format
         - Test date validity of `created_at`
@@ -33,7 +34,6 @@ models:
         description: Customer email, normalized with trim, force lowercase.
         tests:
           - not_null
-          - unique
 
       - name: country_code
         description: Customer 2-letter country code.
@@ -51,8 +51,11 @@ models:
       - name: created_at
         description: Customer creation date.
 
-      - name: has_duplicate_email
-        description: Flag to show if multiple customer id's sharing an email
+      - name: email_record_count
+        description: Count of email appearance in source customers table.  
 
-      - name: duplicate_email_count
-        description: Number of customer records that share the same email.
+      - name: is_duplicate_email_record
+        description: Flag if email for customer_id is duplicated/ assigned to any other customer_id.
+      
+      - name: is_primary_email_record
+        description: Flag if customer_id is customer record.
