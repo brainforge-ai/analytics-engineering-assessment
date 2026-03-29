@@ -5,13 +5,13 @@ models:
     description: |
       Customer staging model built from the raw customer seed.
 
-      Final table grain: one row per customer_id.
-
       This model normalizes email and country fields, preserves every raw
       customer_id, and surfaces duplicate-email metadata for downstream use.
 
       Enriches by adding business-friendly country name.
     meta:
+      table_grain: one row per deduplicated customer_id
+
       source_data_quality_assumptions:
         - customer_id - preserved at the source grain and expected to remain unique in staging.
         - email - normalized with `trim()` and `lower()` before duplicate detection so duplicate-email records can be counted and ranked consistently.

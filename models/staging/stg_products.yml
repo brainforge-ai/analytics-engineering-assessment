@@ -5,15 +5,16 @@ models:
     description: |
       Product staging model built from the raw product seed.
 
-      Grain: one row per product_id.
-
       This model applies light normalization / casting to raw fields. 
     meta:
+      table_grain: one row per product_id with light normalization only.
+      
       source_data_quality_assumptions:
         - product_id - assume valid format 
         - name - Assume okay to use as business-facing name in marts.
         - category - Assume all valid categories are in input data ['Sports', 'Home', 'Books', 'Office', 'Apparel', 'Electronics']
         - unit_price - Assume price is in USD
+      
       possible_future_improvements:
         - Add product_id format validation
         - Add internal data vs business-facing product names

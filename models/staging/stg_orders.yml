@@ -5,12 +5,13 @@ models:
     description: |
       Order staging model built from the raw order seed.
 
-      Grain: one row per order_id.
-
       This model keeps one row per `order_id`, safely parses typed fields used
       downstream, and surfaces data quality flags for invalid dates, missing
       amounts, duplicate orders, and anomalous cancelled-order amounts.
+
     meta:
+      table_grain: one row per deduplicated order_id
+      
       source_data_quality_assumptions:
         - order_id - assume there may be duplicates, assume order_id is valid format.
         - customer_id - assume customer_id may not link/ exist in customers input table. assume customer_id is valid format
