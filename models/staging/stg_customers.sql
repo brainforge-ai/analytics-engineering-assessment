@@ -45,6 +45,11 @@ deduplicated_customers as (
         country,
         created_at
     from customer_email_normalized
+    -- row_number() is a window function
+    -- row_number() assigns 1, 2, 3... within each email group
+    -- partition by email restarts that numbering for each distinct email
+    -- order by created_at/customer_id decides which row gets rank 1
+    -- qualify keeps only the rank-1 row, which is how the dedupe works
     qualify row_number() over (
         partition by email
         order by created_at asc, customer_id asc
