@@ -173,6 +173,7 @@ select
         and not has_future_order_date
         and not has_too_old_order_date
         and not has_missing_total_amount
+        and not has_near_zero_cancelled_amount
         as boolean
     ) as is_valid_order
 from orders_flags
