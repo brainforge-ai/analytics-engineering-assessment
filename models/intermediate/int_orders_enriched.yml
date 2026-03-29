@@ -3,9 +3,10 @@ version: 2
 models:
   - name: int_orders_enriched
     description: |
-      Intermediate order model to enrich order data with customer info.
+      Reusable order model that combines cleaned orders with customer geography (country).
 
-      It also derives reusable monthly helper fields for downstream marts.
+      It also adds monthly reporting fields and a reusable valid-order flag for
+      downstream marts.
       
     meta:
       table_grain: one row per order_id after staged order deduplication, with customer country attributes joined in.
@@ -19,40 +20,40 @@ models:
     columns:
       # source table columns
       - name: order_id
-        description: Unique order identifier.
+        description: Unique identifier for the order.
 
       - name: customer_id
-        description: Customer identifier carried forward from the staged order.
+        description: Identifier for the customer who placed the order.
 
       - name: country_code
-        description: Customer country code joined from the staged customer model for country-level grouping.
+        description: Customer country code used for country-level reporting.
 
       - name: country_name
-        description: Customer country name joined from the staged customer model for business-friendly country reporting.
+        description: Business-friendly customer country name used in reporting outputs.
 
       - name: order_date
-        description: Cleaned order date from the staged order model for daily windows and date-based analysis.
+        description: Cleaned order date used for time-based reporting.
 
       - name: order_year_month
-        description: Year-month derived from order_date for downstream monthly aggregations.
+        description: Reporting month derived from the order date in YYYY-MM format.
 
       - name: order_month_start
-        description: Month-start date derived from order_date for downstream monthly comparisons.
+        description: First day of the order month, used for monthly comparisons and cohort analysis.
 
       - name: status
-        description: Cleaned order status from the staged order model.
+        description: Cleaned business status of the order.
 
       - name: total_amount
-        description: Cleaned order amount from the staged order model.
+        description: Cleaned order amount used in downstream revenue metrics.
 
       - name: currency
-        description: Cleaned order currency from the staged order model.
+        description: Standardized currency code for the order amount.
 
       - name: updated_at
-        description: Cleaned order updated date from the staged order model.
+        description: Source-system timestamp showing when the order was last updated.
 
       # flag & debug columns
       - name: is_valid_order
-        description: Flag showing whether the staged order passed the core order quality checks.
+        description: Flag showing whether the order should be included in downstream business reporting.
 
       # enrichment columns
