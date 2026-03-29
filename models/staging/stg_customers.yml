@@ -24,7 +24,8 @@ models:
         - country_name
       duplicate_tracking_fields:
         - email_record_count
-      suggested_improvements:
+      possbile_todo_improvements:
+        - Add levels (warn vs error) for dbt tests
         - Test customer_id format
         - Test date validity of `created_at`
         - Add test for malformed emails
