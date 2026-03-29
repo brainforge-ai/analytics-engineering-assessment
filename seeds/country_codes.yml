@@ -1,0 +1,14 @@
+version: 2
+
+seeds:
+  - name: country_codes
+    description: >
+      Reference seed mapping of 2-letter country codes to country names.
+
+    columns:
+      - name: country_code
+        description: Two-letter country code, per ISO 3166-1 alpha-2 standard.
+
+
+      - name: country_name
+        description: Business-friendly English country name, per ISO 3166-1 alpha-2 code.

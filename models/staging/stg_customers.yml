@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: >
+      Customer staging model, from customers seed. 
+      Customers are dedeuplicated based on email, choosing the `customer_id` with earlist `created_at` date.
+      Enrich with country name for country code.
+
+    columns:
+      - name: customer_id
+        description: Unique customer identifier number.
+        tests:
+          - not_null
+          - unique
+
+      - name: email
+        description: Customer email, normalized with trim, force lowercase.
+        tests:
+          - not_null
+          - unique
+
+      - name: country_code
+        description: Customer 2-letter country code.
+        tests:
+          - relationships:
+              to: ref('country_codes')
+              field: country_code
+
+      - name: country_name
+        description: Business-friendly country name.
+
+      - name: created_at
+        description: Customer creation date.
+
+      - name: has_duplicate_email
+        description: Flag to show if multiple customer id's sharing an email
+
+      - name: duplicate_email_count
+        description: Number of customer records that share the same email.
