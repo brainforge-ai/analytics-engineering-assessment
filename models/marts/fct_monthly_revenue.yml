@@ -9,6 +9,13 @@ models:
       table_grain: One row per country + year_month
       incremental_strategy: delete+insert. We recompute any country + month bucket where the source orders are newer than the latest updated_at already loaded in the mart.
 
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - country
+              - year_month
+
     columns:
       # source table columns
       - name: country
