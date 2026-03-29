@@ -23,6 +23,8 @@ models:
       - name: country_code
         description: Customer 2-letter country code.
         tests:
+          # not_null test, as relationship test will not fail on null child values
+          - not_null
           - relationships:
               to: ref('country_codes')
               field: country_code
