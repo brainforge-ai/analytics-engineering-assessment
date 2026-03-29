@@ -1,5 +1,6 @@
 -- Assign customers to reusable cohort definitions for downstream cohort analysis.
--- Starter setup so other cohorts could be added/unioned in in the future. 
+-- This model is structured so additional cohort definitions can be added later
+-- and unioned into the final assignment table without reshaping downstream marts.
 
 -- ref tables
 with orders as (
@@ -12,7 +13,7 @@ with orders as (
 
 ),
 
--- Cohort 1: Current cohort definition: the month of each customer's first valid order.
+-- Cohort 1: assign customers to the month of their first valid order.
 first_valid_order_month as (
 
     select
@@ -21,21 +22,32 @@ first_valid_order_month as (
     from orders
     group by 1
 
+),
+
+cohort_assignments as (
+
+    select
+        customer_id,
+        'first_valid_order_month' as cohort_type,
+        cohort_month_start,
+        -- Add a business-readable cohort label.
+        cast(strftime(cohort_month_start, '%b %Y') as varchar) as cohort_label
+    from first_valid_order_month
+
+    -- Cohort 2 placeholder:
+    -- union all
+    -- select
+    --     customer_id,
+    --     'signup_month' as cohort_type,
+    --     cohort_month_start,
+    --     cast(strftime(cohort_month_start, '%b %Y') as varchar) as cohort_label
+    -- from signup_month
+
 )
 
--- Cohort 2:
-
--- Publish the current set of cohort assignments.
 select
-    -- base information
     customer_id,
-
-    -- cohort 1
-    'first_valid_order_month' as cohort_type,
+    cohort_type,
     cohort_month_start,
-    -- Add a business-readable cohort label.
-    cast(strftime(cohort_month_start, '%b %Y') as varchar) as cohort_label
-
-    -- cohort 2
-
-from first_valid_order_month
+    cohort_label
+from cohort_assignments

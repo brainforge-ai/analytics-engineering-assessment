@@ -4,6 +4,9 @@ models:
   - name: int_customer_cohort_assignments
     description: |
       Intermediate model assigning customers to reusable cohort definitions.
+
+      The current implementation includes cohort 1, `first_valid_order_month`.
+      Additional cohort definitions can be added later in the same assignment shape.
     meta:
       table_grain: One row per customer_id + cohort_type
 
@@ -12,7 +15,7 @@ models:
         description: Primary customer id from customer table.
 
       - name: cohort_type
-        description: Internal analytics name for cohort, given defnition. 
+        description: Internal analytics name for the cohort definition, such as first_valid_order_month.
 
       - name: cohort_month_start
         description: Date used to assign the customer to the cohort.
