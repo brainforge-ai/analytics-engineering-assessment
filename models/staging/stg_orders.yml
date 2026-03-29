@@ -3,11 +3,11 @@ version: 2
 models:
   - name: stg_orders
     description: |
-      Order staging model built from the raw order seed.
+      Cleaned table of order information.
 
-      This model keeps one row per `order_id`, safely parses typed fields used
-      downstream, and surfaces data quality flags for invalid dates, missing
-      amounts, duplicate orders, and anomalous cancelled-order amounts.
+      This model keeps one row per order_id, standardizes core order fields,
+      and surfaces data quality flags for duplicate orders, invalid dates,
+      missing amounts, and unusual cancelled-order amounts.
 
     meta:
       table_grain: one row per deduplicated order_id
@@ -29,13 +29,13 @@ models:
     columns:
       # source table columns
       - name: order_id
-        description: Unique order identifier after duplicate raw order rows are resolved.
+        description: Unique identifier for an order after duplicate source rows are resolved.
         tests:
           - not_null
           - unique
 
       - name: customer_id
-        description: Customer identifier carried forward from the primary order row.
+        description: Identifier for the customer who placed the order.
         tests:
           - not_null
           - relationships:
@@ -44,10 +44,10 @@ models:
                 field: customer_id
 
       - name: order_date
-        description: Date that order id was originally created.
+        description: Date the order was placed.
 
       - name: status
-        description: Order id status, can be ['pending', 'refunded', 'completed', 'shipped', 'cancelled']
+        description: Current business status of the order.
         tests:
           - not_null
           - accepted_values:
@@ -55,10 +55,10 @@ models:
                 values: ['pending', 'refunded', 'completed', 'shipped', 'cancelled']
 
       - name: total_amount
-        description: Parsed order amount; blank raw amounts remain null and are flagged in `has_missing_total_amount`.
+        description: Order amount as a numeric value; missing source amounts remain null and are flagged separately.
 
       - name: currency
-        description: Uppercased order currency code.
+        description: Standardized order currency code.
         tests:
           - not_null
           - accepted_values:
@@ -68,35 +68,35 @@ models:
                 values: ['USD']
 
       - name: updated_at
-        description: Last time order id row was updated in source system. 
+        description: Most recent source-system update timestamp for the order.
 
 
       # flag & debug columns
       - name: had_duplicate_order_id
-        description: Boolean flag - true if order_id is duplicate in source orders data. 
+        description: Flag showing whether the order_id appeared more than once in the raw orders data.
 
       - name: duplicate_order_id_count
-        description: Count of order_id appearances in source order data. 
+        description: Number of raw rows that shared the same order_id.
 
       - name: has_invalid_order_date
-        description: Boolean flag - true if order_date is a valid date format. 
+        description: Flag showing whether the source order date could not be parsed into a valid date.
 
       - name: has_invalid_updated_at
-        description: Boolean flag - true if updated_at is a valid date format. 
+        description: Flag showing whether the source updated_at value could not be parsed into a valid timestamp.
 
       - name: has_missing_total_amount
-        description: Boolean flag - true if order_id is missing total amount. 
+        description: Flag showing whether the order is missing an amount.
 
       - name: has_future_order_date
-        description: Boolean flag - true if 
+        description: Flag showing whether the order date falls after the expected Jan-Mar 2024 seed window.
 
       - name: has_too_old_order_date
-        description: Boolean flag showing whether the parsed order date falls before the expected 2024 seed window.
+        description: Flag showing whether the order date falls before the expected 2024 reporting window.
 
       - name: has_near_zero_cancelled_amount
-        description: Boolean flag showing whether a cancelled order carries a near-zero amount at or below 1.
+        description: Flag showing whether a cancelled order carries a near-zero amount at or below 1.
 
       - name: is_valid_order
-        description: Convenience flag showing whether the staged order passes the core date and amount quality checks.
+        description: Flag showing whether the order passes the core quality checks used in downstream reporting.
 
       # enrichment columns

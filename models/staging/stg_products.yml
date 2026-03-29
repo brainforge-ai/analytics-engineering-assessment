@@ -3,9 +3,10 @@ version: 2
 models:
   - name: stg_products
     description: |
-      Product staging model built from the raw product seed.
+      Cleaned table of product information.
 
-      This model applies light normalization / casting to raw fields. 
+      This model applies light normalization so product names, categories, and
+      prices are consistent for downstream use.
     meta:
       table_grain: one row per product_id with light normalization only.
       
@@ -22,18 +23,18 @@ models:
     columns:
       # source table columns
       - name: product_id
-        description: Unique product identifier.
+        description: Unique identifier for a product.
         tests:
           - not_null
           - unique
 
       - name: product_name
-        description: Product name with surrounding whitespace removed.
+        description: Product name after light text cleanup.
         tests:
           - not_null
 
       - name: category
-        description: Product category with surrounding whitespace removed.
+        description: Product category after light text cleanup.
         tests:
           - not_null
           - accepted_values:
@@ -41,7 +42,7 @@ models:
                 values: ['Apparel', 'Books', 'Electronics', 'Home', 'Office', 'Sports']
 
       - name: unit_price
-        description: Product unit price as a numeric value.
+        description: Product unit price as a numeric amount.
         tests:
           - not_null
 

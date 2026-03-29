@@ -3,12 +3,13 @@ version: 2
 models:
   - name: stg_customers
     description: |
-      Customer staging model built from the raw customer seed.
+      Cleaned table of customer inforomation.
+      
+      This model standardizes customer email and country values while preserving
+      one row per customer_id from the source data.
 
-      This model normalizes email and country fields, preserves every raw
-      customer_id, and surfaces duplicate-email metadata for downstream use.
-
-      Enriches by adding business-friendly country name.
+      It also adds country names and flags duplicate-email situations so those
+      records can be reviewed separately from normal reporting use.
     meta:
       table_grain: one row per deduplicated customer_id
 
@@ -28,18 +29,18 @@ models:
     columns:
       # source table columns
       - name: customer_id
-        description: Unique customer identifier number.
+        description: Unique identifier for a customer.
         tests:
           - not_null
           - unique
 
       - name: email
-        description: Customer email, normalized with trim, force lowercase.
+        description: Customer email address after trimming whitespace and converting to lowercase.
         tests:
           - not_null
 
       - name: country_code
-        description: Customer 2-letter country code.
+        description: Standardized two-letter country code for the customer.
         tests:
           # not_null test, as relationship test will not fail on null child values
           - not_null
@@ -49,19 +50,19 @@ models:
                 field: country_code
 
       - name: created_at
-        description: Customer creation date.
+        description: Date the customer record was created in the source system.
 
 
       # flag & debug columns
       - name: is_duplicate_email_record
-        description: Flag if email for customer_id is duplicated/ assigned to any other customer_id.
+        description: Flag showing whether the same email is used by more than one customer record.
       
       - name: is_primary_email_record
-        description: Flag if customer_id is customer record.
+        description: Flag showing which customer record is treated as the primary record within a shared email group.
 
       - name: email_record_count
-        description: Count of email appearance in source customers table.  
+        description: Number of customer records sharing the same normalized email address.
 
       # enrichment columns
       - name: country_name
-        description: Business-friendly country name.
+        description: Business-friendly country name derived from the country code.
