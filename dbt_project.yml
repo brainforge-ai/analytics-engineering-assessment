@@ -23,6 +23,9 @@ seeds:
   ae_assessment:
     +schema: raw
 
+vars:
+  order_updated_at_cutoff_date: '1900-01-01'
+
 models:
   ae_assessment:
     +materialized: view
@@ -32,7 +35,8 @@ models:
       +schema: intermediate
     marts:
       +schema: marts
-      +materialized: table
+      +materialized: incremental
+      +incremental_strategy: delete+insert
 
 tests:
   ae_assessment:

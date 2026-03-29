@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: fct_monthly_revenue
+    description: |
+      Fact table for monthly revenue by country.
+
+    meta:
+      table_grain: One row per country + year_month
+      incremental_strategy: delete+insert. We recompute any country + month bucket where the source orders are newer than the latest updated_at already loaded in the mart.
+
+    columns:
+      # source table columns
+      - name: country
+        description: Business-friendly customer country name used for country-level reporting.
+        tests:
+          - not_null
+
+      - name: year_month
+        description: Reporting month in YYYY-MM format derived from valid order_date values.
+        tests:
+          - not_null
+
+      - name: total_revenue
+        description: Sum of valid order amounts for the country-month, rounded to two decimal places.
+        tests:
+          - not_null
+
+      - name: order_count
+        description: Count of valid orders in the country-month.
+        tests:
+          - not_null
+
+      - name: avg_order_value
+        description: Average valid order amount in the country-month, rounded to two decimal places.
+        tests:
+          - not_null
+
+      # flag & debug columns
+      - name: max_order_updated_at
+        description: Latest order-level updated_at value contributing to the country-month row; used as the mart cutoff for incremental runs.
+
+      # enrichment columns
