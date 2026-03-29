@@ -13,3 +13,6 @@ logs/
 .vscode/
 *.swp
 *.swo
+
+# other
+auto-ui.py
