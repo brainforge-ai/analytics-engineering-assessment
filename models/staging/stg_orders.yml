@@ -11,19 +11,22 @@ models:
       downstream, and surfaces data quality flags for invalid dates, missing
       amounts, duplicate orders, and anomalous cancelled-order amounts.
     meta:
-      data_quality_assumptions:
+      source_data_quality_assumptions:
         - order_id - assume there may be duplicates, assume order_id is valid format.
         - customer_id - assume customer_id may not link/ exist in customers input table. assume customer_id is valid format
-        - order_date - assume 
-        - status - assume status can only be 1 of 5 inputs - pending, refunded, completed, shipped, cancelled
-        - total_amount - 
-        - currency - Assume always USD, add warning test for future
-        - updated_at - 
-      suggested_future_improvements:
+        - order_date - assume date that order_id was placed
+        - status - assume only options are ['pending', 'refunded', 'completed', 'shipped', 'cancelled']
+        - total_amount - assume null is a "missing" amount
+        - currency - Assume always USD
+        - updated_at - assume this is source systems timestamp for order record
+
+      possible_future_improvements:
+        - Add levels (warn vs error) for dbt tests
         - add order id format test
 
 
     columns:
+      # source table columns
       - name: order_id
         description: Unique order identifier after duplicate raw order rows are resolved.
         tests:
@@ -31,7 +34,7 @@ models:
           - unique
 
       - name: customer_id
-        description: Customer identifier carried forward from the canonical staged order row.
+        description: Customer identifier carried forward from the primary order row.
         tests:
           - not_null
           - relationships:
@@ -40,10 +43,15 @@ models:
                 field: customer_id
 
       - name: order_date
-        description: Parsed order date for the staged order record; invalid, future, and too-old values are surfaced through companion flags.
+        description: Date that order id was originally created.
 
       - name: status
-        description: Lowercased order status from the raw seed.
+        description: Order id status, can be ['pending', 'refunded', 'completed', 'shipped', 'cancelled']
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pending', 'refunded', 'completed', 'shipped', 'cancelled']
 
       - name: total_amount
         description: Parsed order amount; blank raw amounts remain null and are flagged in `has_missing_total_amount`.
@@ -53,29 +61,33 @@ models:
         tests:
           - not_null
           - accepted_values:
+              config:
+                severity: warn
               arguments:
                 values: ['USD']
 
       - name: updated_at
-        description: Parsed update date used to select the canonical row when duplicate order ids exist.
+        description: Last time order id row was updated in source system. 
 
+
+      # flag & debug columns
       - name: had_duplicate_order_id
-        description: Boolean flag showing whether the raw seed contained more than one row for the order id.
+        description: Boolean flag - true if order_id is duplicate in source orders data. 
 
       - name: duplicate_order_id_count
-        description: Number of raw order rows that shared the same order id.
+        description: Count of order_id appearances in source order data. 
 
       - name: has_invalid_order_date
-        description: Boolean flag showing whether the raw `order_date` could not be parsed as a valid date.
+        description: Boolean flag - true if order_date is a valid date format. 
 
       - name: has_invalid_updated_at
-        description: Boolean flag showing whether the raw `updated_at` value could not be parsed as a valid date.
+        description: Boolean flag - true if updated_at is a valid date format. 
 
       - name: has_missing_total_amount
-        description: Boolean flag showing whether the raw `total_amount` field was blank.
+        description: Boolean flag - true if order_id is missing total amount. 
 
       - name: has_future_order_date
-        description: Boolean flag showing whether the parsed order date falls after the expected Jan-Mar 2024 seed window.
+        description: Boolean flag - true if 
 
       - name: has_too_old_order_date
         description: Boolean flag showing whether the parsed order date falls before the expected 2024 seed window.
@@ -85,3 +97,5 @@ models:
 
       - name: is_valid_order
         description: Convenience flag showing whether the staged order passes the core date and amount quality checks.
+
+      # enrichment columns
