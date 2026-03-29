@@ -18,7 +18,7 @@ first_valid_order_month as (
 
     select
         customer_id,
-        min(order_month_start) as cohort_month_start
+        min(order_month_start) as cohort_1_month_start
     from orders
     group by 1
 
@@ -29,9 +29,9 @@ cohort_assignments as (
     select
         customer_id,
         'first_valid_order_month' as cohort_type,
-        cohort_month_start,
+        cohort_1_month_start,
         -- Add a business-readable cohort label.
-        cast(strftime(cohort_month_start, '%b %Y') as varchar) as cohort_label
+        cast(strftime(cohort_1_month_start, '%b %Y') as varchar) as cohort_1_label
     from first_valid_order_month
 
     -- Cohort 2 placeholder:
@@ -39,8 +39,8 @@ cohort_assignments as (
     -- select
     --     customer_id,
     --     'signup_month' as cohort_type,
-    --     cohort_month_start,
-    --     cast(strftime(cohort_month_start, '%b %Y') as varchar) as cohort_label
+    --     cohort_2_month_start,
+    --     cast(strftime(cohort_2_month_start, '%b %Y') as varchar) as cohort_2_label
     -- from signup_month
 
 )
@@ -48,6 +48,6 @@ cohort_assignments as (
 select
     customer_id,
     cohort_type,
-    cohort_month_start,
-    cohort_label
+    cohort_1_month_start,
+    cohort_1_label
 from cohort_assignments

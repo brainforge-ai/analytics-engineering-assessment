@@ -17,8 +17,8 @@ models:
       - name: cohort_type
         description: Internal analytics name for the cohort definition, such as first_valid_order_month.
 
-      - name: cohort_month_start
-        description: Date used to assign the customer to the cohort.
+      - name: cohort_1_month_start
+        description: Date used to assign the customer to cohort 1.
 
-      - name: cohort_label
-        description: Business-friendly cohort label in abbreviated month format. 
+      - name: cohort_1_label
+        description: Business-friendly label for cohort 1 in abbreviated month format.
