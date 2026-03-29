@@ -12,7 +12,7 @@ with products_raw as (
 
 ),
 
--- normalize raw string fields used downstream
+-- normalize products_raw
 products_normalized as (
 
     select

@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: stg_products
+    description: |
+      Product staging model built from the raw product seed.
+
+      Grain: one row per product_id.
+
+      This model applies light normalization / casting to raw fields. 
+    meta:
+      source_data_quality_assumptions:
+        - product_id - assume valid format 
+        - name - Assume okay to use as business-facing name in marts.
+        - category - Assume all valid categories are in input data ['Sports', 'Home', 'Books', 'Office', 'Apparel', 'Electronics']
+        - unit_price - Assume price is in USD
+      possible_future_improvements:
+        - Add product_id format validation
+        - Add internal data vs business-facing product names
+
+    columns:
+      # source table columns
+      - name: product_id
+        description: Unique product identifier.
+        tests:
+          - not_null
+          - unique
+
+      - name: product_name
+        description: Product name with surrounding whitespace removed.
+        tests:
+          - not_null
+
+      - name: category
+        description: Product category with surrounding whitespace removed.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Apparel', 'Books', 'Electronics', 'Home', 'Office', 'Sports']
+
+      - name: unit_price
+        description: Product unit price as a numeric value.
+        tests:
+          - not_null
+
+      # flag & debug columns
+
+      # enrichment columns
