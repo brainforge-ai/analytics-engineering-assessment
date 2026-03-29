@@ -44,7 +44,7 @@ orders_enriched as (
     left join customers
         on orders.customer_id = customers.customer_id
 
-),
+)
 
 -- final intermediate contract for downstream country revenue and monthly reporting
 select
