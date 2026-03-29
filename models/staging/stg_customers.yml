@@ -5,8 +5,11 @@ models:
     description: |
       Customer staging model built from the raw customer seed.
 
+
       Customers are dedeuplicated based on email, choosing the `customer_id` with earlist `created_at` date.
       Enrich with country name for country code.
+
+      Final table grain: one row per normalized email.
     meta:
       data_quality_assumptions:
         - customer_id - is valid format from source, likely unique but test anyway for safety. 
