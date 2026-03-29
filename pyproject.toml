@@ -11,3 +11,10 @@ dependencies = [
     "halo>=0.0.31",
     "loguru>=0.7.3",
 ]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.0",
+    "sqlfluff>=3.0.0",
+    "sqlfluff-templater-dbt>=3.0.0",
+]
