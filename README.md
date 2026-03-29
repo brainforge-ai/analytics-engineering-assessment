@@ -1,3 +1,87 @@
+# David Rose Solution Summary
+
+This section documents my implemented solution. 
+
+The original challenge README is preserved below at [Analytics Engineering Assessment](#analytics-engineering-assessment).
+
+---
+
+## How to run the project
+(from the project root)
+
+1. Use python 3.13
+
+2. Set up and activate the Python environment.
+
+Using `uv`:
+```bash
+uv sync
+source .venv/bin/activate
+```
+
+Or use `requirements.txt` with your preferred Python environment manager.
+
+3. Install dbt dependencies/packages
+```bash
+dbt deps
+```
+
+4. Run the dbt project
+```bash
+dbt seed && dbt run && dbt test
+```
+or
+```bash
+dbt build
+```
+
+## Data quality decisions
+
+See the staging model docs for the detailed data quality decisions and assumptions:
+
+- [stg_customers.yml](models/staging/stg_customers.yml)
+- [stg_orders.yml](models/staging/stg_orders.yml)
+- [stg_products.yml](models/staging/stg_products.yml)
+
+In summary, followed the data cleaning requested in the exercise...
+- invalid, future, and too-old order dates are excluded from valid-order reporting
+- duplicate `order_id` records are deduplicated by keeping the most recently updated row
+- null order amounts are preserved in staging for visibility, but excluded from valid revenue reporting through `is_valid_order`
+- duplicate customer emails are retained and flagged for visibility
+
+## Incremental strategy
+
+- `fct_monthly_revenue` is an incremental mart using `delete+insert` at the `country + year_month` grain.
+- Incremental runs order `updated_at` dates + the `fct_monthly_revenue` tables's persisted `max_order_updated_at` date to identify which country-month buckets need to be recomputed.
+- Once affected (orders in the bucket's scope have been updated since last mart build) bucket, the model fully recomputes the bucket's rows from valid source orders and replaces them.
+
+## Chosen Complex Metric: Option C: Customer Cohort Analysis
+
+- The second mart is [fct_cohort_analysis__first_order_month.sql](models/marts/fct_cohort_analysis__first_order_month.sql).
+- It defines customer cohorts by first valid order month, then measures later-month activity for that cohort.
+- The mart answers three questions: How large is the cohort? How many customers in the given cohort were active in each observed month? and What share of the original cohort was active in the observed month? (retention)
+
+## Time Tracking
+In the spirit of consulting, I decided to track my time while working through the project. Total tracked time was **7.35 hours**.
+
+| Work Step | Time |
+| --- | ---: |
+| Read repo / instructions in full | 15 min |
+| Clone repo, read instructions, write high level ticket list | 10 min |
+| Set up python env with uv | 10 min |
+| 3.1 Staging - customers | 1h 37m |
+| 3.1 Staging - orders | 1h 21m |
+| 3.1 Staging - products | 12 min |
+| 3.2 Intermediate model | 35 min |
+| 3.3 Monthly revenue mart | 1h 23m |
+| 3.4 Cohort analysis mart | 1h 08m |
+| 3.5 Tests and documentation review | 5 min |
+| 4. Deliverables checklist / final verification / PR writeup | 25 min |
+| **Total Time Spent** | **7h 21m** |
+
+---
+---
+
 # Analytics Engineering Assessment
 
 Interview challenge for analytics engineering candidates at Brainforge. This assessment evaluates **data quality handling, incremental modeling, complex SQL metrics, testing, and documentation** using a realistic e‑commerce dataset with intentional quality issues.
