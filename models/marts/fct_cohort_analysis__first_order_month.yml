@@ -3,10 +3,14 @@ version: 2
 models:
   - name: fct_cohort_analysis__first_order_month
     description: |
-      Table to analyze customer retention following thier first order. 
+      Table to analyze customer retention following their first order.
 
       This mart is intentionally scoped to the `first_valid_order_month` cohort
       definition, with one row per cohort start month observed in one later month.
+
+      `months_since_first_order = 0` is intentionally kept as the baseline month.
+      It anchors the cohort, shows the original cohort size in the same output
+      shape, and makes later observed months easier to interpret.
 
     meta:
       table_grain: One row per cohort_start_month + observed_month
@@ -23,7 +27,7 @@ models:
           - not_null
 
       - name: months_since_first_order
-        description: Number of months between the cohort's starting month and the observed month.
+        description: Number of months between the cohort's starting month and the observed month; `0` represents the baseline cohort month.
         tests:
           - not_null
 
