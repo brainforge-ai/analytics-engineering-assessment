@@ -3,7 +3,7 @@ version: 2
 models:
   - name: fct_monthly_revenue
     description: |
-      Fact table for monthly revenue by country.
+      Monthly revenue mart showing one row per country and reporting month.
 
     meta:
       table_grain: One row per country + year_month
@@ -45,6 +45,6 @@ models:
 
       # flag & debug columns
       - name: max_order_updated_at
-        description: Latest order-level updated_at value contributing to the country-month row; used as the mart cutoff for incremental runs.
+        description: Latest source order update included in the country-month row; used internally to support precise incremental rebuilds.
 
       # enrichment columns
