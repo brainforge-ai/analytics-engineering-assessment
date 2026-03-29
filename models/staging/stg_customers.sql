@@ -1,5 +1,6 @@
 -- Clean and deduplicate customer seed records to one row per normalized email.
 
+-- import reference tables
 with customers_raw as (
 
     select
@@ -11,17 +12,8 @@ with customers_raw as (
 
 ),
 
-country_codes as (
-
-    select
-        country_code,
-        country_name
-    from {{ ref('country_codes') }}
-
-),
-
--- initial field normalization for logic
-customer_email_normalized as (
+-- normalize customers_raw 
+customers_normalized as (
 
     select
         customer_id,
@@ -35,13 +27,22 @@ customer_email_normalized as (
 
 ),
 
+country_codes as (
+
+    select
+        country_code,
+        country_name
+    from {{ ref('country_codes') }}
+
+),
+
 -- get email counts by customer
 email_counts as (
 
     select
         email,
         count(*) as email_record_count
-    from customer_email_normalized
+    from customers_normalized
     group by 1
 
 ),
@@ -55,7 +56,7 @@ deduplicated_customers as (
         email,
         country_code,
         created_at
-    from customer_email_normalized
+    from customers_normalized
     -- row_number() is a window function - explain I have not used these, so I added this note for myself
     -- row_number() assigns 1, 2, 3... within each email group
     -- partition by email restarts that numbering for each distinct email
