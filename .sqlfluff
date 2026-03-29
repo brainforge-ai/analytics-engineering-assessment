@@ -2,6 +2,7 @@
 dialect = duckdb
 templater = dbt
 sql_file_exts = .sql
+max_line_length = 160
 
 [sqlfluff:templater:dbt]
 project_dir = .
