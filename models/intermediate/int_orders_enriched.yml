@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: |
+      Intermediate order model to enrich order data with customer info.
+
+      It also derives reusable monthly helper fields for downstream marts.
+      
+    meta:
+      table_grain: one row per order_id after staged order deduplication, with customer country attributes joined in.
+      
+      source_data_quality_assumptions:
+        - order_id - remains one row per staged order after the staging deduplication logic has been applied.
+        - customer_id - assumed to match a staged customer row so customer country attributes can be joined in for downstream reporting.
+        - order_date - assumed to be the cleaned staged order date used for monthly derivations.
+        - total_amount - assumed to be the cleaned staged order amount used in downstream metrics.
+
+    columns:
+      # source table columns
+      - name: order_id
+        description: Unique order identifier.
+
+      - name: customer_id
+        description: Customer identifier carried forward from the staged order.
+
+      - name: country_code
+        description: Customer country code joined from the staged customer model for country-level grouping.
+
+      - name: country_name
+        description: Customer country name joined from the staged customer model for business-friendly country reporting.
+
+      - name: order_date
+        description: Cleaned order date from the staged order model for daily windows and date-based analysis.
+
+      - name: order_year_month
+        description: Year-month derived from order_date for downstream monthly aggregations.
+
+      - name: order_month_start
+        description: Month-start date derived from order_date for downstream monthly comparisons.
+
+      - name: status
+        description: Cleaned order status from the staged order model.
+
+      - name: total_amount
+        description: Cleaned order amount from the staged order model.
+
+      - name: currency
+        description: Cleaned order currency from the staged order model.
+
+      - name: updated_at
+        description: Cleaned order updated date from the staged order model.
+
+      # flag & debug columns
+      - name: is_valid_order
+        description: Flag showing whether the staged order passed the core order quality checks.
+
+      # enrichment columns
