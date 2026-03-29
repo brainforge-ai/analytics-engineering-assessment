@@ -17,6 +17,13 @@ models:
         - email - normalized with `trim()` and `lower()` before duplicate detection so duplicate-email records can be counted and ranked consistently.
         - country - standardized to uppercase, with raw `UK` values normalized to `GB` so the code aligns to the country-code reference seed.
         - created_at - used to rank records within each normalized email group so the earliest row can be flagged as the primary email record.
+      derived_flags:
+        - is_duplicate_email_record
+        - is_primary_email_record
+      enrichment_fields:
+        - country_name
+      duplicate_tracking_fields:
+        - email_record_count
       suggested_improvements:
         - Test customer_id format
         - Test date validity of `created_at`
