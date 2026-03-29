@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: fct_cohort_analysis__first_order_month
+    description: |
+      Cohort mart showing how customers behave after their first valid order month.
+
+      This mart is intentionally scoped to the `first_valid_order_month` cohort
+      definition, with one row per cohort month observed in one later month.
+
+    meta:
+      table_grain: One row per cohort_start_month + observed_month
+
+    columns:
+      - name: cohort_start_month
+        description: Business-friendly label for cohort 1's starting month, such as Jan 2024.
+        tests:
+          - not_null
+
+      - name: observed_month
+        description: Business-friendly month label for the month being observed for cohort 1, such as Feb 2024.
+        tests:
+          - not_null
+
+      - name: months_since_first_order
+        description: Number of months between cohort 1's starting month and the observed month.
+        tests:
+          - not_null
+
+      - name: customers_in_cohort
+        description: Count of customers whose first valid order falls in cohort 1.
+        tests:
+          - not_null
+
+      - name: active_customers
+        description: Count of cohort 1 customers with at least one valid order in the observed month.
+        tests:
+          - not_null
+
+      - name: observed_month_retention_rate
+        description: Share of cohort 1 active in the given observed month.
+        tests:
+          - not_null
