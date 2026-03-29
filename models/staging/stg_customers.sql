@@ -1,6 +1,6 @@
 -- Clean and deduplicate customer seed records to one row per normalized email.
 
--- import reference tables
+-- ref tables
 with customers_raw as (
 
     select
