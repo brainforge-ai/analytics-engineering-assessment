@@ -52,14 +52,13 @@ models:
         description: Customer creation date.
 
 
-      # flag columns
+      # flag & debug columns
       - name: is_duplicate_email_record
         description: Flag if email for customer_id is duplicated/ assigned to any other customer_id.
       
       - name: is_primary_email_record
         description: Flag if customer_id is customer record.
 
-      # debug columns
       - name: email_record_count
         description: Count of email appearance in source customers table.  
 
