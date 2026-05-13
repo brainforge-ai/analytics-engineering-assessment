@@ -1,0 +1,107 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: >
+      Cleaned and deduplicated orders from the raw seed. Three categories of
+      date problems are filtered out entirely: literal 'invalid_date' strings,
+      dates before 2023-01-01 (seed context is Jan–Mar 2024, so year-2020
+      records are stale), and future dates beyond today. Null amounts are
+      preserved for pending orders — they are filtered downstream by the revenue
+      flag. Duplicate order_ids are resolved by keeping the record with the most
+      recent updated_at; total_amount DESC is used as a tiebreaker when
+      updated_at is equal.
+    columns:
+      - name: order_id
+        description: Primary key — unique after deduplication.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to stg_customers.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+              config:
+                severity: warn
+                where: "customer_id is not null"
+      - name: order_date
+        description: >
+          Validated order date. Rows with unparseable, future, or pre-2023
+          dates are excluded before this model is materialized.
+        tests:
+          - not_null
+      - name: status
+        description: Order lifecycle status.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['completed', 'pending', 'cancelled', 'shipped', 'refunded']
+      - name: total_amount
+        description: >
+          Order value in USD. Null for pending orders that have not yet been
+          invoiced. Near-zero amounts on cancelled orders are preserved here;
+          they are excluded from revenue by the is_valid_revenue_order flag in
+          the intermediate layer.
+      - name: currency
+        description: Always USD in this dataset (uppercased).
+      - name: updated_at
+        description: >
+          Last update timestamp. Used as the watermark for incremental mart
+          logic — the mart stores max(updated_at) and filters on it each run.
+
+  - name: stg_customers
+    description: >
+      Cleaned customer dimension. A small number of customers share email
+      addresses (data entry error in the source). These are resolved by keeping
+      the customer with the lowest customer_id, representing the earliest
+      registration. This ensures a 1:1 join from orders to customers and
+      prevents row fan-out in aggregations.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: Lowercased, trimmed email address. Unique after deduplication.
+        tests:
+          - unique
+          - not_null
+      - name: country
+        description: Two-letter ISO country code, uppercased.
+        tests:
+          - not_null
+      - name: created_at
+        description: Date the customer account was created.
+        tests:
+          - not_null
+
+  - name: stg_products
+    description: >
+      Cleaned product reference table. Minimal transformation — type casting
+      and removal of rows with a missing product_id or non-positive unit_price.
+      Products are not currently joined into the revenue mart but are available
+      for future product-level analyses.
+    columns:
+      - name: product_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: name
+        description: Product display name (trimmed).
+      - name: category
+        description: Product category.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Electronics', 'Books', 'Home', 'Office', 'Apparel', 'Sports']
+      - name: unit_price
+        description: Unit price in USD. Always positive after staging filter.
+        tests:
+          - not_null
+          - positive_amount:
+              column_name: unit_price

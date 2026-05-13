@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: fct_monthly_revenue
+    description: >
+      Monthly revenue fact table aggregated at the grain of one row per
+      country per calendar month.
+
+      Built incrementally using a delete+insert strategy keyed on
+      (country, year_month). On incremental runs, only month-country
+      combinations with new or updated orders are recomputed.
+
+      Revenue includes only orders flagged as valid revenue orders in
+      int_orders_enriched:
+      - status is completed or shipped
+      - total_amount > 0
+      - total_amount is not null
+
+      Orders with null country values (orphaned customer joins) are excluded
+      because revenue cannot be attributed geographically.
+
+    columns:
+      - name: country
+        description: >
+          Two-letter customer country code inherited from
+          int_orders_enriched.
+        tests:
+          - not_null
+
+      - name: year_month
+        description: >
+          Calendar month in YYYY-MM format representing the aggregation grain.
+        tests:
+          - not_null
+
+      - name: total_revenue
+        description: >
+          Sum of total_amount for all valid revenue orders within the given
+          country and month. Rounded to 2 decimal places.
+        tests:
+          - not_null
+
+      - name: order_count
+        description: >
+          Count of valid revenue-generating orders for the given country
+          and month.
+        tests:
+          - not_null
+
+      - name: avg_order_value
+        description: >
+          Average total_amount across valid revenue orders for the given
+          country and month. Rounded to 2 decimal places. Null when no valid
+          revenue orders exist.
+
+      - name: last_updated_at
+        description: >
+          Maximum updated_at value across all orders contributing to the
+          monthly aggregate. Used as the incremental watermark to identify
+          affected month-country combinations during future incremental runs.
+        tests:
+          - not_null
+
+  - name: fct_revenue_mom_growth
+    description: >
+      Month-over-month revenue growth metrics by country, derived from
+      fct_monthly_revenue.
+
+      Uses window functions to compare each month's revenue against the
+      previous month's revenue within the same country.
+
+      Growth percentage formula:
+      ((current_month_revenue - prior_month_revenue)
+      / prior_month_revenue) * 100
+
+      Growth values are null when:
+      - there is no prior month for the country
+      - prior month revenue equals zero
+
+    columns:
+      - name: country
+        description: Two-letter customer country code.
+        tests:
+          - not_null
+
+      - name: year_month
+        description: Calendar month in YYYY-MM format.
+        tests:
+          - not_null
+
+      - name: total_revenue
+        description: Revenue for the current month and country.
+        tests:
+          - not_null
+
+      - name: order_count
+        description: Count of valid revenue orders for the month and country.
+        tests:
+          - not_null
+
+      - name: avg_order_value
+        description: Average revenue order value for the month and country.
+
+      - name: prior_month_revenue
+        description: >
+          Revenue for the immediately preceding month within the same country.
+          Null for the first available month.
+
+      - name: mom_revenue_growth_pct
+        description: >
+          Percentage revenue growth versus the prior month:
+          ((current - prior) / prior) * 100.
+
+          Positive values indicate growth.
+          Negative values indicate decline.
+          Null when prior month revenue is unavailable or zero.
