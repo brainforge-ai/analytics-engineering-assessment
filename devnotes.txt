@@ -46,4 +46,8 @@ Typical SQL vv
 
 ~~~ DBT THINGS ~~~
 Reconfirm 'ref's passthrough from seeds to staging
+
+dbt seed is reliably creating physical tables under _raw
+dbt run deployed view definitions to _staging schema as stg_<name>
+
 ~~~            ~~~

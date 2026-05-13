@@ -19,3 +19,5 @@ There are 1 unused configuration paths:
 03:10:37  
 
 Operating this file path as AI assisted
+
+After applying schema.yml, _staging views stg_<name> is working as expected.
