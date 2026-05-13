@@ -54,10 +54,10 @@ EXPLICIT -- Cast in the staging model files does compile appropriately. Root cau
 
 [  ] Build staging models that read from the seeds and handle data quality issues:
   [ X ] Filter out or quarantine bad dates (invalid, future, too old).
-  [  ] Handle null amounts appropriately (decide: filter, default, or flag).
-  [  ] Deduplicate orders (keep the most recent by updated_at when order_id is duplicated).
-  [  ] Handle duplicate customer emails (decide strategy: pick one, flag, etc.).
-  [  ] Document your data quality assumptions in the model descriptions.
+  [ X ] Handle null amounts appropriately (decide: filter, default, or flag).
+  [ X ] Deduplicate orders (keep the most recent by updated_at when order_id is duplicated).
+  [ X ] Handle duplicate customer emails (decide strategy: pick one, flag, etc.).
+  [ X ] Document your data quality assumptions in the model descriptions.
   [ X ] Place models in models/staging/.
 
 deduplicate order_ids -- involved a same date and duplicate order. quarantined both records and persisted the lower value of the two in staging.
@@ -79,6 +79,19 @@ D select * from main_staging.stg_orders where order_id = 'ord_0501';
 ├──────────┼─────────────┼────────────┼───────────┼──────────────┼──────────┼────────────┤
 │ ord_0501 │ cust_058    │ 2024-02-01 │ completed │       346.04 │ USD      │ 2024-02-11 │
 └──────────┴─────────────┴────────────┴───────────┴──────────────┴──────────┴────────────┘
+
+====     3.1 Complete     ====
+
+==============================
+
+====    Begin 3.2 - 3.4   ====
+
+
+
+
+==============================
+
+
 
 ==============================
 

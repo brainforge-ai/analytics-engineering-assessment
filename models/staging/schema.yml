@@ -36,6 +36,10 @@ sources:
           - name: email
             data_type: varchar
             description: Customer email address; may require deduplication in staging.
+            data_tests:
+            - duplicate_key_record:
+                config:
+                  store_failures: true
           - name: country
             data_type: varchar
             description: Country associated with the customer account or signup.
