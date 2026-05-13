@@ -1,2 +1,18 @@
 Spin up local branch
 Update DBT Extension - circa DBT Fusion
+Confirm python3 v3.13
+Confirm venv.bin on mac vs Scripts on PC
+Created analytics.duckdb by submitting first ddl CREATE
+
+Complete Challenge.md Setup
+
+(.venv) austinair@MacBookAir analytics-engineering-assessment % dbt compile
+03:10:36  Running with dbt=1.11.9
+03:10:36  Registered adapter: duckdb=1.10.1
+03:10:36  [WARNING]: Configuration paths exist in your dbt_project.yml file which do not apply to any resources.
+There are 1 unused configuration paths:
+- models.ae_assessment.intermediate
+03:10:37  Found 4 models, 2 data tests, 3 seeds, 478 macros
+03:10:37  
+03:10:37  Concurrency: 1 threads (target='dev')
+03:10:37  

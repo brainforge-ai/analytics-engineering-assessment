@@ -24,3 +24,21 @@ Tests
 DUCKDB
 dbt
 
+RUN generate_seed_data.py
+
+Data quality issues added:
+  - ~6% bad dates (invalid, future, very old)
+  - ~10% pending orders with null amounts
+  - ~30% cancelled orders with near-zero amounts
+  - Some duplicate emails in customers
+  - One duplicate order_id with different data
+  - Added updated_at for incremental logic
+
+~~~ DUCKDB THINGS ~~~
+- list tables: 
+Duckdb synbtax -->  $SHOW ALL TABLES
+Typical SQL vv
+  SELECT table_name, table_schema 
+  FROM information_schema.tables;
+
+~~~               ~~~
