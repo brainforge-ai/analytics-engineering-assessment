@@ -54,4 +54,16 @@ dbt docs generate -- created catalog.json under target directory
 database view's seed vs source table seems to distinguish the known csv from that csv as loaded to _raw schema
 
 
+Regarding schema.yml data-type...
+
+Supported Data Types
+dbt supports standard SQL data types, though the exact string you use depends on your data platform (e.g., Snowflake, BigQuery, Postgres). Common categories include:
+Numeric: int, integer, decimal, float, numeric.
+String: string, varchar, text, char.
+Date/Time: date, datetime, timestamp, time.
+Boolean: boolean.
+Complex/Semi-structured: json, array, variant.
+
+Confirmed addition of schema.yml to seeds directory. Note that example sql undefined table name is a known bug https://github.com/dbt-labs/dbt-docs/issues/407
+
 ~~~            ~~~
