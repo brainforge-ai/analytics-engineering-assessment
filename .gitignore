@@ -13,3 +13,4 @@ logs/
 .vscode/
 *.swp
 *.swo
+venv/
