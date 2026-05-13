@@ -13,3 +13,6 @@ logs/
 .vscode/
 *.swp
 *.swo
+dbt_internal_packages/
+
+.venv

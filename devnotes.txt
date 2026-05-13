@@ -1,0 +1,26 @@
+stg_ 
+  - Clean
+  - Dedupe
+  - Null Handling
+  - Date conformity
+
+
+Mart
+  - Incremental Load (Merge)
+  --> Fact: Monthly Revenue 
+    - Grain - Country x month
+
+Metrcs
+  Rolling 30 day (Lag, Rows Window)
+  Month-over-Month Growth (abs. / %growth)
+  Cohort Analysis
+
+Tests
+  - Sanity
+  - Freshness
+  - Relationship
+  
+
+DUCKDB
+dbt
+
