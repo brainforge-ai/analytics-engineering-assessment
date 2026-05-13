@@ -38,6 +38,10 @@ sources:
           - name: created_at
             data_type: date
             description: Timestamp when the customer record was created.
+            data_tests:
+              - parseable_date:
+                  config:
+                    store_failures: true
 
       - name: orders
         description: Order fact rows from the orders seed.
@@ -51,6 +55,10 @@ sources:
           - name: order_date
             data_type: date
             description: Date of the order; validate for invalid or future dates in staging.
+            data_tests:
+            - parseable_date:
+                config:
+                  store_failures: true
           - name: status
             data_type: varchar
             description: Order lifecycle status (e.g. 'completed', 'pending', 'cancelled', 'shipped', 'refunded').
@@ -63,6 +71,10 @@ sources:
           - name: updated_at
             data_type: date
             description: Row update timestamp; use to resolve duplicate order_id rows.
+            data_tests:
+              - parseable_date:
+                  config:
+                    store_failures: true
 
 models:
   - name: stg_products
@@ -108,7 +120,7 @@ models:
         description: Customer who placed the order.
       - name: order_date
         data_type: date
-        description: Date of the order.
+        description: Date of the order.     
       - name: status
         data_type: varchar
         description: Order lifecycle status.

@@ -4,8 +4,13 @@
 */
 
 select
-    order_id,
-    count(*) as duplicate_count
+    order_id
+    ,customer_id
+    ,order_date
+    ,status
+    ,total_amount
+    ,currency
+    ,updated_at
 from {{ ref('stg_orders') }}
-group by 1
-having count(*) > 1
+WHERE 
+    updated_at is null

@@ -1,5 +1,7 @@
+/*
 -- Singular test: Completed orders should have positive total_amount
 -- Fails if any completed order has amount <= 0
+*/
 
 select
     order_id,

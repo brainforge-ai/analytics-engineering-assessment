@@ -32,7 +32,7 @@ seeds:
         data_type: varchar
         description: Country associated with the customer account or signup.
       - name: created_at
-        data_type: date
+        data_type: varchar
         description: Timestamp when the customer record was created.
 
   - name: orders
@@ -45,7 +45,7 @@ seeds:
         data_type: varchar
         description: Customer who placed the order.
       - name: order_date
-        data_type: date
+        data_type: varchar
         description: Date of the order; validate for invalid or future dates in staging.
       - name: status
         data_type: varchar
@@ -57,5 +57,5 @@ seeds:
         data_type: varchar
         description: ISO or business code for the currency of total_amount.
       - name: updated_at
-        data_type: date
+        data_type: varchar
         description: Row update timestamp; use to resolve duplicate order_id rows.

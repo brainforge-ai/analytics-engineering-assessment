@@ -17,3 +17,4 @@ dbt_internal_packages/
 
 .venv
 .user*
+zz_*/

@@ -24,7 +24,8 @@ Tests
 DUCKDB
 dbt
 
-RUN generate_seed_data.py
+==== Assessment Section 1 ====
+ - RUN generate_seed_data.py
 
 Data quality issues added:
   - ~6% bad dates (invalid, future, very old)
@@ -33,6 +34,33 @@ Data quality issues added:
   - Some duplicate emails in customers
   - One duplicate order_id with different data
   - Added updated_at for incremental logic
+
+==============================
+
+Assessment Section 2: Mostly data review
+added data types to schema.yml
+
+==============================
+
+==== Assessment Section 3 ====
+
+~~ Approaching data quality from tests perspective.
+adapt typical sanity tests to jinja syntax, run with dbt test
+
+VERY INTERESTING -- DBT Compile was applying a TO_DATE to customers, but not to orders. Attempting explicit function in staging models.
+EXPLICIT -- Cast in the staging model files does compile appropriately. Root cause not identified.
+
+3.1 Staging models with data quality handling
+
+[  ] Build staging models that read from the seeds and handle data quality issues:
+  [  ] Filter out or quarantine bad dates (invalid, future, too old).
+  [  ] Handle null amounts appropriately (decide: filter, default, or flag).
+  [  ] Deduplicate orders (keep the most recent by updated_at when order_id is duplicated).
+  [  ] Handle duplicate customer emails (decide strategy: pick one, flag, etc.).
+  [  ] Document your data quality assumptions in the model descriptions.
+  [ X ] Place models in models/staging/.
+
+==============================
 
 ~~~ DUCKDB THINGS ~~~
 - list tables: 
@@ -65,5 +93,11 @@ Boolean: boolean.
 Complex/Semi-structured: json, array, variant.
 
 Confirmed addition of schema.yml to seeds directory. Note that example sql undefined table name is a known bug https://github.com/dbt-labs/dbt-docs/issues/407
+
+
+Jinja notes: 
+jinja variables ref{{}} versus source{{'',''}}
+
+  Summary: ref for every model in the chain; source for declared upstream tables, mostly at ingest. That split is what keeps lineage and semantics clean end-to-end.
 
 ~~~            ~~~

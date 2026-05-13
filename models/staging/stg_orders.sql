@@ -8,9 +8,9 @@
 select 
     order_id
     ,customer_id
-    ,order_date
+    ,try_strptime(trim(order_date::varchar), '%Y-%m-%d')::date as order_date
     ,status
     ,total_amount
     ,currency
-    ,updated_at
+    ,try_strptime(trim(updated_at::varchar), '%Y-%m-%d')::date as updated_at
 from {{ source('raw', 'orders') }}

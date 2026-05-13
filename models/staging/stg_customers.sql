@@ -6,5 +6,5 @@ select
     customer_id
     ,email
     ,country
-    ,created_at 
+    ,try_strptime(trim(created_at::varchar), '%Y-%m-%d')::date as created_at 
 from {{ source('raw', 'customers') }}
