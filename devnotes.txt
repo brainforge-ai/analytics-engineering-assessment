@@ -50,4 +50,8 @@ Reconfirm 'ref's passthrough from seeds to staging
 dbt seed is reliably creating physical tables under _raw
 dbt run deployed view definitions to _staging schema as stg_<name>
 
+dbt docs generate -- created catalog.json under target directory
+database view's seed vs source table seems to distinguish the known csv from that csv as loaded to _raw schema
+
+
 ~~~            ~~~
