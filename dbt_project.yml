@@ -19,9 +19,17 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# Seeds land in the custom schema `raw` (default macro → {target.schema}_raw). Staging models
+# read the same relations via sources named `raw` in models/staging/schema.yml, e.g.
+#   {{ source('raw', 'products') }}
 seeds:
   ae_assessment:
     +schema: raw
+
+# Project-level defaults for declared sources (see models/staging/schema.yml).
+sources:
+  ae_assessment:
+    +enabled: true
 
 models:
   ae_assessment:

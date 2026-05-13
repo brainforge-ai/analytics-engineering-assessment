@@ -5,6 +5,7 @@ Confirm venv.bin on mac vs Scripts on PC
 Created analytics.duckdb by submitting first ddl CREATE
 
 Complete Challenge.md Setup
+ran seed & compile
 
 (.venv) austinair@MacBookAir analytics-engineering-assessment % dbt compile
 03:10:36  Running with dbt=1.11.9
@@ -16,3 +17,5 @@ There are 1 unused configuration paths:
 03:10:37  
 03:10:37  Concurrency: 1 threads (target='dev')
 03:10:37  
+
+Operating this file path as AI assisted

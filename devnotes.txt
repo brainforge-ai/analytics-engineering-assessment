@@ -42,3 +42,8 @@ Typical SQL vv
   FROM information_schema.tables;
 
 ~~~               ~~~
+
+
+~~~ DBT THINGS ~~~
+Reconfirm 'ref's passthrough from seeds to staging
+~~~            ~~~

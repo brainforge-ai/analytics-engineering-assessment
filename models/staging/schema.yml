@@ -1,0 +1,93 @@
+version: 2
+
+# Seeds use +schema: raw (see dbt_project.yml). With default generate_schema_name,
+# relations live in {{ target.schema }}_raw — keep this in sync if you override that macro.
+sources:
+  - name: raw
+    description: Raw landing tables (seed-backed for this project).
+    schema: "{{ target.schema }}_raw"
+    tables:
+      - name: products
+        description: Product catalog rows from the products seed.
+        columns:
+          - name: product_id
+            description: Primary key for the product.
+          - name: name
+            description: Product display name.
+          - name: category
+            description: Merchandising or product category.
+          - name: unit_price
+            description: Price per unit in the given currency context.
+
+      - name: customers
+        description: Customer dimension rows from the customers seed.
+        columns:
+          - name: customer_id
+            description: Primary key for the customer.
+          - name: email
+            description: Customer email address; may require deduplication in staging.
+          - name: country
+            description: Country associated with the customer account or signup.
+          - name: created_at
+            description: Timestamp when the customer record was created.
+
+      - name: orders
+        description: Order fact rows from the orders seed.
+        columns:
+          - name: order_id
+            description: Business key for the order; watch for duplicates by updated_at.
+          - name: customer_id
+            description: Customer who placed the order.
+          - name: order_date
+            description: Date of the order; validate for invalid or future dates in staging.
+          - name: status
+            description: Order lifecycle status (e.g. placed, shipped, cancelled).
+          - name: total_amount
+            description: Monetary total for the order; handle nulls in staging.
+          - name: currency
+            description: ISO or business code for the currency of total_amount.
+          - name: updated_at
+            description: Row update timestamp; use to resolve duplicate order_id rows.
+
+models:
+  - name: stg_products
+    description: Staging layer for products; starts as a thin pass-through from raw.
+    columns:
+      - name: product_id
+        description: Primary key for the product.
+      - name: name
+        description: Product display name.
+      - name: category
+        description: Merchandising or product category.
+      - name: unit_price
+        description: Price per unit in the given currency context.
+
+  - name: stg_customers
+    description: Staging layer for customers; add deduplication and email rules per project spec.
+    columns:
+      - name: customer_id
+        description: Primary key for the customer.
+      - name: email
+        description: Customer email address.
+      - name: country
+        description: Country associated with the customer account or signup.
+      - name: created_at
+        description: Timestamp when the customer record was created.
+
+  - name: stg_orders
+    description: Staging layer for orders; add date, amount, and duplicate-order handling per project spec.
+    columns:
+      - name: order_id
+        description: Business key for the order.
+      - name: customer_id
+        description: Customer who placed the order.
+      - name: order_date
+        description: Date of the order.
+      - name: status
+        description: Order lifecycle status.
+      - name: total_amount
+        description: Monetary total for the order.
+      - name: currency
+        description: Currency code for total_amount.
+      - name: updated_at
+        description: Last update time for the order row.
