@@ -22,6 +22,10 @@ sources:
           - name: unit_price
             data_type: decimal
             description: Price per unit in the given currency context.
+            data_tests:
+              - valid_price:
+                  config:
+                    store_failures: true
 
       - name: customers
         description: Customer dimension rows from the customers seed.
@@ -65,6 +69,10 @@ sources:
           - name: total_amount
             data_type: decimal
             description: Monetary total for the order; handle nulls in staging.
+            data_tests:
+              - valid_price:
+                  config:
+                    store_failures: true
           - name: currency
             data_type: varchar
             description: ISO or business code for the currency of total_amount.

@@ -1,6 +1,6 @@
 /*
--- Singular test: No duplicate order_ids should exist in staging
--- Fails if any order_id appears more than once
+-- Singular test: No order_ids with null order_date should exist in staging
+-- Fails if any order_id with null order_date
 */
 
 select

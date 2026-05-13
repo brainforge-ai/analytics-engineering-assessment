@@ -54,7 +54,7 @@ EXPLICIT -- Cast in the staging model files does compile appropriately. Root cau
 
 [  ] Build staging models that read from the seeds and handle data quality issues:
   [ X ] Filter out or quarantine bad dates (invalid, future, too old).
-  [ X ] Handle null amounts appropriately (decide: filter, default, or flag).
+  [  ] Handle null amounts appropriately (decide: filter, default, or flag).
   [  ] Deduplicate orders (keep the most recent by updated_at when order_id is duplicated).
   [  ] Handle duplicate customer emails (decide strategy: pick one, flag, etc.).
   [  ] Document your data quality assumptions in the model descriptions.

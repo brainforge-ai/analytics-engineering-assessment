@@ -1,5 +1,5 @@
 /*
--- Singular test: Customer Records should have a created_at date
+-- Singular test: Customer Records should have a null created_at date
 -- Fails if any customer record's created_at date is null
 */
 

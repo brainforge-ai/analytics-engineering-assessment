@@ -1,6 +1,6 @@
 /*
--- Singular test: No order_ids with null updated_date should exist in staging
--- Fails if any order_id holds a null for updated_date
+-- Singular test: No null total_amount should exist in staging
+-- Fails if any order_id includes a null value for total_amount
 */
 
 select
@@ -13,4 +13,4 @@ select
     ,updated_at
 from {{ ref('stg_orders') }}
 WHERE 
-    updated_at is null
+    total_amount is null
