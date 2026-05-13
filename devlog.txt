@@ -21,3 +21,53 @@ There are 1 unused configuration paths:
 Operating this file path as AI assisted
 
 After applying schema.yml, _staging views stg_<name> is working as expected.
+
+--------
+Reviewed dbt docs generate/serve 
+Noticed seed documentation was not supported -- added schema.yml to seeds dir
+Confirmed correction
+
+--------
+
+Begin assessment section 3:
+
+Date Sanity tests -- 
+    [ NOTE ] Date Malformed/Invalid
+    [ x ] Date format deviation
+    [ x ] date is null
+    [ x ] date is future
+
+Encountered inconsistency in stg_ view type casting. Type from seed is inferred by duckdb.
+
+17:27:26  Failure in seed orders (seeds/orders.csv)
+17:27:26    Runtime Error in seed orders (seeds/orders.csv)
+  Conversion Error: CSV Error on Line: 99
+  Original Line: 
+  ord_0098,cust_036,invalid_date,completed,456.65,USD,invalid_date
+  Error when converting column "order_date". Could not convert string "invalid_date" to 'DATE'
+  
+  Column order_date is being converted as type DATE
+  This type was either manually set or derived from an existing table. Select a different type to correctly parse this column.
+  * Check whether the null string value is set correctly (e.g., nullstr = 'N/A')
+  
+    file = /Users/austinair/Documents/Work/20260512_Brainforge_assessment/analytics-engineering-assessment/seeds/orders.csv
+    delimiter = , (Set By User)
+    quote = (empty) (Auto-Detected)
+    escape = (empty) (Auto-Detected)
+    new_line = \r\n (Auto-Detected)
+    header = true (Set By User)
+    skip_rows = 0 (Auto-Detected)
+    comment = (empty) (Auto-Detected)
+    strict_mode = true (Auto-Detected)
+    date_format =  (Auto-Detected)
+    timestamp_format =  (Auto-Detected)
+    null_padding = 0
+    sample_size = 20480
+    ignore_errors = false
+    all_varchar = 0
+  The Column types set by the user do not match the ones found by the sniffer. 
+  Column at position: 2 Set type: DATE Sniffed type: VARCHAR
+  Column at position: 6 Set type: DATE Sniffed type: VARCHAR
+
+  Outcome: Post-seed type casting is resolved by DBMS. DUCKDB sampling detected date records == 'invalid_date'.
+  Action: allow seed data _raw to pass the original values, apply test macro to isolate violations in audit tables. Model does not fail, resolves bad values to null.

@@ -95,9 +95,26 @@ Complex/Semi-structured: json, array, variant.
 Confirmed addition of schema.yml to seeds directory. Note that example sql undefined table name is a known bug https://github.com/dbt-labs/dbt-docs/issues/407
 
 
+
 Jinja notes: 
 jinja variables ref{{}} versus source{{'',''}}
 
   Summary: ref for every model in the chain; source for declared upstream tables, mostly at ingest. That split is what keeps lineage and semantics clean end-to-end.
 
+
+
+QUARANTINE DATA
+
+Using store_failures in Data TestsThe most common approach is to use built-in dbt tests with the --store-failures configuration. This allows you to run tests and save the rows that violate the test rules into a separate schema.Implementation: In your dbt_project.yml or specific model YAML, set store_failures: true.
+
+Result: Invalid records are stored in a new table named [test_name]__[model_name], usually in a dedicated dbt_test__audit schema
+
+Treatment of quarantine data is as follows: 
+- Macro test is written for edge-case -- invalid date 
+case: Date = 'invalid_date'
+handling: Tests fail, model does not.
+Model resolves bad data to null
+Macro runs on seed event routing exceptions to audit tables.
+
+select * from "analytics"."main_dbt_test__audit"."source_parseable_date_raw_orders_order_date";
 ~~~            ~~~
