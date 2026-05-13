@@ -5,4 +5,4 @@
 --   - Duplicate order_ids (keep most recent by updated_at)
 -- Replace the pass-through below with your implementation.
 
-select * from {{ ref('orders') }}
+select * from {{ source('raw', 'orders') }}
