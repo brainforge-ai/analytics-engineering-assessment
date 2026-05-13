@@ -1,0 +1,17 @@
+Im working on a dbt project and want guidance on defining schemas and refs as project configs versus inline
+
+—————
+
+notice that these stg_ files in the staging directory are simple refs. what are some best practices so that table and schema names are defined in dbt_project.yml. Also describe best practices related to schema.yml near to the models
+
+—————
+
+update dbt_project.yml to implement the source('raw', 'products') pattern. Also update the schema.yml so that column names and descriptions are supported.
+
+—————
+
+customer seed includes columns: customer_id,email,country,created_at
+orders seed includes columns: order_id,customer_id,order_date,status,total_amount,currency,updated_at
+products seed includes columns: product_id,name,category,unit_price
+
+update the yml accordingly.
