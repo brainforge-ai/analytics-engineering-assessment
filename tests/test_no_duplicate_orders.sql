@@ -1,9 +1,10 @@
--- Singular test: No duplicate order_ids should exist in staging
--- Fails if any order_id appears more than once
+-- Singular test: After deduplication in stg_orders, each order_id must appear
+-- exactly once. Any rows returned here mean the deduplication window logic
+-- has a gap that needs fixing.
 
 select
     order_id,
-    count(*) as duplicate_count
+    count(*) as row_count
 from {{ ref('stg_orders') }}
-group by 1
+group by order_id
 having count(*) > 1

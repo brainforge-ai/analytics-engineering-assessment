@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: >
+      Enriched order records joining validated orders from stg_orders with
+      customer attributes from stg_customers. This is the canonical analytical
+      base layer — all mart models read from here rather than re-joining
+      staging independently. Contains one row per cleaned order record with
+      standardized time dimensions, customer enrichment, and the centralized
+      business logic flag defining valid revenue orders.
+
+    columns:
+      - name: order_id
+        description: Unique order identifier. One row per order after staging deduplication.
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: >
+          Customer identifier from the order record. Always populated, though
+          some IDs may not resolve to a customer dimension row (orphaned orders).
+        tests:
+          - not_null
+
+      - name: order_date
+        description: >
+          Validated order date inherited from stg_orders. Bad dates were already
+          filtered in the staging layer.
+        tests:
+          - not_null
+
+      - name: updated_at
+        description: >
+          Last update timestamp for the order record. Used downstream as the
+          incremental watermark in fct_monthly_revenue.
+        tests:
+          - not_null
+
+      - name: year_month
+        description: >
+          YYYY-MM string derived from order_date (example: 2024-01). This is
+          the standardized monthly aggregation grain used across marts.
+        tests:
+          - not_null
+
+      - name: order_year
+        description: Calendar year extracted from order_date.
+        tests:
+          - not_null
+
+      - name: order_month
+        description: Calendar month number extracted from order_date (1-12).
+        tests:
+          - not_null
+
+      - name: status
+        description: Order lifecycle status.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['completed', 'pending', 'cancelled', 'shipped', 'refunded']
+
+      - name: total_amount
+        description: >
+          Order value in USD. Null values are preserved for legitimate pending
+          orders that have not yet been invoiced.
+
+      - name: currency
+        description: >
+          Order currency inherited from staging. Standardized to uppercase USD
+          values in this dataset.
+        tests:
+          - not_null
+
+      - name: customer_email
+        description: >
+          Customer email address from stg_customers. Lowercased and deduplicated
+          in the staging layer. Null for orphaned orders.
+
+      - name: country
+        description: >
+          Customer country code from stg_customers. Null when the order has no
+          matching customer record (orphaned order). Revenue marts exclude these
+          rows because revenue cannot be attributed to a geography.
+
+      - name: customer_created_at
+        description: >
+          Customer account creation date from stg_customers. Null for orphaned
+          orders.
+
+      - name: is_valid_revenue_order
+        description: >
+          Centralized business-defined revenue flag. TRUE only when:
+          status is completed or shipped, total_amount is not null, and
+          total_amount > 0.
+
+          FALSE for:
+          - pending orders
+          - cancelled orders
+          - refunded orders
+          - orders with null or non-positive amounts
+
+          This flag standardizes revenue logic so downstream marts can aggregate
+          revenue consistently without repeating CASE statements.
+        tests:
+          - not_null
+
+      - name: customer_tenure_days
+        description: >
+          Number of days between customer account creation and order date.
+          Null for orphaned orders with no customer match. Intended for future
+          cohort, retention, and loyalty analysis.
