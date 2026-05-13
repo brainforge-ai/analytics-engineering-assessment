@@ -62,6 +62,16 @@ EXPLICIT -- Cast in the staging model files does compile appropriately. Root cau
 
 deduplicate order_ids -- involved a same date and duplicate order. quarantined both records and persisted the lower value of the two in staging.
 
+
+D select * from "analytics"."main_dbt_test__audit"."source_duplicate_key_record_raw_orders_order_id";
+┌──────────┬─────────────┬────────────┬───────────┬──────────────┬──────────┬────────────┬───────────────────┐
+│ order_id │ customer_id │ order_date │  status   │ total_amount │ currency │ updated_at │ count_of_keyvalue │
+│ varchar  │   varchar   │  varchar   │  varchar  │    double    │ varchar  │  varchar   │       int64       │
+├──────────┼─────────────┼────────────┼───────────┼──────────────┼──────────┼────────────┼───────────────────┤
+│ ord_0501 │ cust_058    │ 2024-02-01 │ completed │       692.08 │ USD      │ 2024-02-11 │                 2 │
+│ ord_0501 │ cust_058    │ 2024-02-01 │ completed │       346.04 │ USD      │ 2024-02-11 │                 2 │
+└──────────┴─────────────┴────────────┴───────────┴──────────────┴──────────┴────────────┴───────────────────┘
+
 D select * from main_staging.stg_orders where order_id = 'ord_0501';
 ┌──────────┬─────────────┬────────────┬───────────┬──────────────┬──────────┬────────────┐
 │ order_id │ customer_id │ order_date │  status   │ total_amount │ currency │ updated_at │
