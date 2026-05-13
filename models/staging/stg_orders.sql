@@ -5,12 +5,28 @@
 --   - Duplicate order_ids (keep most recent by updated_at)
 -- Replace the pass-through below with your implementation.
 
-select 
+
+select
     order_id
     ,customer_id
-    ,try_strptime(trim(order_date::varchar), '%Y-%m-%d')::date as order_date
+    ,order_date
     ,status
-    ,total_amount
+    ,min(total_amount) as total_amount  -- in case of same datetimestamp, resolve to lower value for sake of the customer who may experience an undercharge vs overcharge. dbt tests and tight audit loop to remediate. 
     ,currency
-    ,try_strptime(trim(updated_at::varchar), '%Y-%m-%d')::date as updated_at
-from {{ source('raw', 'orders') }}
+    ,updated_at
+from (
+    select 
+        order_id
+        ,customer_id
+        ,try_strptime(trim(order_date::varchar), '%Y-%m-%d')::date as order_date
+        ,status
+        ,total_amount
+        ,currency
+        ,try_strptime(trim(updated_at::varchar), '%Y-%m-%d')::date as updated_at
+        ,max(order_date) over (partition by order_id order by updated_at desc rows between unbounded preceding and unbounded following) as max_updated_at
+    from {{ source('raw', 'orders') }}
+)
+where 
+    order_date = max_updated_at
+group by 
+    1,2,3,4,6,7

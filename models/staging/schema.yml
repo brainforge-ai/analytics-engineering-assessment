@@ -53,6 +53,10 @@ sources:
           - name: order_id
             data_type: varchar
             description: Business key for the order; watch for duplicates by updated_at.
+            data_tests:
+            - duplicate_key_record:
+                config:
+                  store_failures: true
           - name: customer_id
             data_type: varchar
             description: Customer who placed the order.
