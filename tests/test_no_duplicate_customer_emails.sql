@@ -1,8 +1,9 @@
 /*
--- Singular test: No duplicate emails should exist in staging
--- Fails if any email is shared by more than one customer
-*/
-
+ * Singular data test: non-null customer emails are unique in staging.
+ *
+ * Fails when: the same email appears on more than one stg_customers row.
+ */
+ 
 select
     email,
     count(*) as duplicate_count

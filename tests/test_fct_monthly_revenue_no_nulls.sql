@@ -1,3 +1,9 @@
+/*
+ * Singular data test: monthly revenue fact has no null measure.
+ *
+ * Fails when: total_revenue is null for any (country, currency, year_month) row.
+ */
+
 select
     country
     ,currency

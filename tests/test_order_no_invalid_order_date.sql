@@ -1,7 +1,8 @@
 /*
--- Singular test: No order_id with invalid dates should exist in staging
--- Fails if any order_id holds an invalid updated_at value
-*/
+ * Singular data test: non-null order_date values cast to a DATE.
+ *
+ * Fails when: order_date is not null but try_cast(order_date as date) is null (DuckDB).
+ */
 
 select
     order_id

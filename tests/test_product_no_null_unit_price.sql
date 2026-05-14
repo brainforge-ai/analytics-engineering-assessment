@@ -1,7 +1,8 @@
 /*
--- Singular test: No null unit_price should exist in staging
--- Fails if any product_id includes a null value for unit_price
-*/
+ * Singular data test: product catalog prices are present.
+ *
+ * Fails when: unit_price is null on stg_products.
+ */
 
 select
     product_id

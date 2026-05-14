@@ -118,8 +118,8 @@ This tests window functions and business metric calculation.
 3.5 Tests and documentation (strict requirements)
 
 Tests:
-[   ] Uniqueness + not_null on fct_monthly_revenue primary key (country + year_month).
-[   ] Relationship test: customer_id in orders references customers.
+[ X ] Uniqueness + not_null on fct_monthly_revenue primary key (country + year_month).
+[ X ] Relationship test: customer_id in orders references customers.
 [ X ] Custom/generic test: Assert that total_amount > 0 for completed orders (data quality test).
 [ X ] At least one singular test (SQL test) for a business rule.
 Documentation:

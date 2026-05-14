@@ -1,7 +1,8 @@
 /*
--- Singular test: Customer records should have create dates in the past.
--- Fails if any customer record has created_at in the future relative to 'current_date' at runtime
-*/
+ * Singular data test: customer created_at is not on or after today.
+ *
+ * Fails when: stg_customers.created_at >= current_date (evaluated at test runtime).
+ */
 
 SELECT 
     customer_id

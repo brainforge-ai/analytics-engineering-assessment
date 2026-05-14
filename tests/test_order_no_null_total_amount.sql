@@ -1,7 +1,8 @@
 /*
--- Singular test: No null total_amount should exist in staging
--- Fails if any order_id includes a null value for total_amount
-*/
+ * Singular data test: every order has a total_amount.
+ *
+ * Fails when: total_amount is null on stg_orders.
+ */
 
 select
     order_id

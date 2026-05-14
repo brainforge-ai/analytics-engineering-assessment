@@ -1,3 +1,8 @@
+/*
+ * Singular data test: orders reference valid customers.
+ *
+ * Fails when: a stg_orders.customer_id has no matching stg_customers.customer_id.
+ */
 
 SELECT
     order_id

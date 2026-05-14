@@ -1,7 +1,8 @@
 /*
--- Singular test: No order_id with a future date should exist in staging
--- Fails if any order_id holds an updated date in the future relative to runtime.
-*/
+ * Singular data test: order updated_at is not on or after today.
+ *
+ * Fails when: stg_orders.updated_at >= current_date (evaluated at test runtime).
+ */
 
 select
     order_id

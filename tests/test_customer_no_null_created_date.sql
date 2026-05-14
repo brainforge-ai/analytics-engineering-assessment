@@ -1,7 +1,8 @@
 /*
--- Singular test: Customer Records should have a null created_at date
--- Fails if any customer record's created_at date is null
-*/
+ * Singular data test: monthly revenue fact has no null measure.
+ *
+ * Fails when: total_revenue is null for any (country, currency, year_month) row.
+ */
 
 SELECT 
     customer_id

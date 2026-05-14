@@ -1,8 +1,9 @@
 /*
--- Singular test: No duplicate order_ids should exist in staging
--- Fails if any order_id appears more than once
-*/
-
+ * Singular data test: order_id is unique in staging.
+ *
+ * Fails when: the same order_id appears on more than one stg_orders row.
+ */
+ 
 select
     order_id,
     count(*) as duplicate_count

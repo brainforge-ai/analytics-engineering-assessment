@@ -1,7 +1,8 @@
 /*
--- Singular test: Completed orders should have positive total_amount
--- Fails if any completed order has amount <= 0
-*/
+ * Singular data test: completed orders carry a positive total_amount.
+ *
+ * Fails when: status is 'completed' and total_amount is null, zero, or negative.
+ */
 
 select
     order_id,

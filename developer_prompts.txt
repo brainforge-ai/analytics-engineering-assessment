@@ -87,4 +87,12 @@ can a schema.yml type reference be added to macros to document tests?
 
 —————
 
+update macros/schema.yml to document the remaining macros
+
+—————
+
 in dbt is there a similiar schema.yml pattern to document tests in the dbt docs interface?
+
+—————
+
+add inline comments to each test where missing. update those where the comment is not representative of the code

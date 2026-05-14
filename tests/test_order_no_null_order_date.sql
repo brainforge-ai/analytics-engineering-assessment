@@ -1,7 +1,8 @@
 /*
--- Singular test: No order_ids with null order_date should exist in staging
--- Fails if any order_id with null order_date
-*/
+ * Singular data test: every order has an order_date.
+ *
+ * Fails when: order_date is null on stg_orders.
+ */
 
 select
     order_id

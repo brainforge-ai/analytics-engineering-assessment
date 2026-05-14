@@ -1,7 +1,9 @@
 /*
--- Singular test: Customer records should have a valid created_at date
--- Fails if any created_at value returns an invalid date. ex. Feb. 30
-*/
+ * Singular data test: non-null customer created_at casts to a DATE.
+ *
+ * Fails when: created_at is not null but try_cast(created_at as date) is null (DuckDB),
+ * e.g. unparseable strings if the column were widened to varchar upstream.
+ */
 
 SELECT 
     customer_id
