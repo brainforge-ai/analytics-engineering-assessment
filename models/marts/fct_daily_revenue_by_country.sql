@@ -1,70 +1,80 @@
-
+{# Spine bounds: 29 days before first order through last order (DuckDB: date - integer = subtract days). #}
 {% set start_range_date %}
-(select (min(order_date) - INTERVAL 29 DAY) from {{ ref('inter_orders') }})
+(select min(order_date) - 29 from {{ ref('inter_orders') }})
 {% endset %}
 {% set end_range_date %}
-(select max(order_date) from {{ ref('inter_orders') }})
+(select max(order_date) + 31 from {{ ref('inter_orders') }})
 {% endset %}
-
 
 with date_spine_cte as (
 
-    -- Generate a list of dates between 
-{{ dbt_utils.date_spine(
-    datepart="day",
-    start_date=start_range_date | trim,
-    end_date=end_range_date | trim
-) }}
+    {{ dbt_utils.date_spine(
+        datepart="day",
+        start_date=start_range_date | trim,
+        end_date=end_range_date | trim
+    ) }}
 
 ),
 
 countries as (
-    select 
-        country
+    select country
     from {{ ref('inter_orders') }}
-    group by 
-        1
+    group by 1
+),
+
+currencies as (
+    select currency
+    from {{ ref('inter_orders') }}
+    group by 1
 ),
 
 prep_fact as (
-    SELECT
-        spine.report_date
-        ,spine.country
-        ,agg.currency
-        ,agg.total_amount
-    FROM (
-            select 
-                -- Cast the generated column to a standard date format
-                cast(date_day as date) as report_date
-                ,country
-            from date_spine_cte
-                CROSS JOIN countries
-        ) spine
-        left join ( 
-            SELECT
-                order_date
-                ,country
-                ,currency
-                ,sum(total_amount) as total_amount
-            FROM {{ref('inter_orders')}}
-            group by 
-                1,2,3
-        ) agg
-        on spine.report_date = agg.order_date 
+    select
+        spine.report_date,
+        spine.country,
+        spine.currency,
+        coalesce(agg.total_amount,0) as total_amount
+    from (
+        select
+            cast(date_day as date) as report_date
+            ,country
+            ,currency
+        from date_spine_cte
+        cross join countries
+        cross join currencies
+    ) as spine
+    left join (
+        select
+            order_date,
+            country,
+            currency,
+            round(sum(total_amount),2) as total_amount
+        from {{ ref('inter_orders') }}
+        group by 1, 2, 3
+    ) as agg
+        on spine.report_date = agg.order_date
         and spine.country = agg.country
+        and spine.currency = agg.currency
 )
 
-SELECT
-    report_date
-    ,country
-    ,currency
-    ,total_amount as daily_revenue
-    ,sum(total_amount) 
-        over (partition by country, currency order by report_date ASC ROWS BETWEEN 29 PRECEDING AND 0 FOLLOWING) 
-    as thirty_day_rolling_revenue
-FROM 
-    prep_fact
-GROUP BY 
-    1,2,3,4
-ORDER BY
-    country desc, report_date desc
+select
+    report_date,
+    country,
+    currency,
+    daily_revenue,
+    thirty_day_rolling_revenue
+from (
+    select
+        report_date,
+        country,
+        currency,
+        total_amount as daily_revenue,
+        round(sum(total_amount) over (
+            partition by country, currency
+            order by report_date
+            rows between 29 preceding and current row
+        ),2) as thirty_day_rolling_revenue
+    from prep_fact
+)
+--where thirty_day_rolling_revenue <> 0.0
+order by country desc, currency desc, report_date desc
