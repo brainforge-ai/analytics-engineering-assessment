@@ -93,6 +93,7 @@ D select * from main_staging.stg_orders where order_id = 'ord_0501';
 3.3 Incremental mart: Monthly Revenue by Country
 
 Build one incremental mart in models/marts/:
+[   ] schema.yml
 
 [ X ] Mart name: fct_monthly_revenue
 [ X ] Grain: One row per country per month (e.g., 2024-01, US).
@@ -107,6 +108,7 @@ Required columns:
 [ X ] 3.4 Rolling metrics mart (bonus/complex)
 
 Build a second mart OR add to the first (choose one):
+[   ] schema.yml
 
 [ X ] Option A: 30-day rolling revenue per country (current date + prior 29 days).
 [   ] Option B: Month-over-month revenue growth % per country.
