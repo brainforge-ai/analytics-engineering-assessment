@@ -1,0 +1,170 @@
+version: 2
+
+# Seeds use +schema: raw (see dbt_project.yml). With default generate_schema_name,
+# relations live in {{ target.schema }}_raw — keep this in sync if you override that macro.
+sources:
+  - name: raw
+    description: Raw landing tables (seed-backed for this project).
+    schema: "{{ target.schema }}_raw"
+    tables:
+      - name: products
+        description: >
+          Raw product catalog loaded from seed data. One row per product_id;
+          consumed by stg_products as the system of record for merchandising attributes
+          and unit pricing before downstream joins.
+        columns:
+          - name: product_id
+            data_type: varchar
+            description: Primary key for the product.
+          - name: name
+            data_type: varchar
+            description: Product display name.
+          - name: category
+            data_type: varchar
+            description: Merchandising or product category.
+          - name: unit_price
+            data_type: decimal
+            description: Price per unit in the given currency context.
+            data_tests:
+              - valid_price:
+                  config:
+                    store_failures: true
+
+      - name: customers
+        description: >
+          Raw customer records from seed data. May contain duplicate emails and
+          inconsistent date strings; staging applies parsing and (per project spec)
+          deduplication rules before use in order enrichment.
+        columns:
+          - name: customer_id
+            data_type: varchar
+            description: Primary key for the customer.
+          - name: email
+            data_type: varchar
+            description: Customer email address; may require deduplication in staging.
+            data_tests:
+            - duplicate_key_record:
+                config:
+                  store_failures: true
+          - name: country
+            data_type: varchar
+            description: Country associated with the customer account or signup.
+          - name: created_at
+            data_type: date
+            description: Timestamp when the customer record was created.
+            data_tests:
+              - parseable_date:
+                  config:
+                    store_failures: true
+
+      - name: orders
+        description: >
+          Raw order transactions from seed data. Business keys can repeat across
+          updated_at; staging resolves duplicates and normalizes dates and amounts
+          before facts and intermediates consume this lineage.
+        columns:
+          - name: order_id
+            data_type: varchar
+            description: Business key for the order; watch for duplicates by updated_at.
+            data_tests:
+            - duplicate_key_record:
+                config:
+                  store_failures: true
+          - name: customer_id
+            data_type: varchar
+            description: Customer who placed the order.
+          - name: order_date
+            data_type: date
+            description: Date of the order; validate for invalid or future dates in staging.
+            data_tests:
+            - parseable_date:
+                config:
+                  store_failures: true
+          - name: status
+            data_type: varchar
+            description: Order lifecycle status (e.g. 'completed', 'pending', 'cancelled', 'shipped', 'refunded').
+          - name: total_amount
+            data_type: decimal
+            description: Monetary total for the order; handle nulls in staging.
+            data_tests:
+              - valid_price:
+                  config:
+                    store_failures: true
+          - name: currency
+            data_type: varchar
+            description: ISO or business code for the currency of total_amount.
+          - name: updated_at
+            data_type: date
+            description: Row update timestamp; use to resolve duplicate order_id rows.
+            data_tests:
+              - parseable_date:
+                  config:
+                    store_failures: true
+
+models:
+  - name: stg_products
+    description: >
+      Staging view for the product catalog: pass-through from raw.products with the
+      same grain (one row per product). Intended as the place to add catalog-specific
+      cleansing, renaming, or policy flags as the assessment spec evolves.
+    columns:
+      - name: product_id
+        data_type: varchar
+        description: Primary key for the product.
+      - name: name
+        data_type: varchar
+        description: Product display name.
+      - name: category
+        data_type: varchar
+        description: Merchandising or product category.
+      - name: unit_price
+        data_type: decimal
+        description: Price per unit in the given currency context.
+
+  - name: stg_customers
+    description: >
+      Staging view for customers sourced from raw.customers. Parses created_at from
+      text into a date; extend here with email deduplication and other customer-level
+      quality rules required by the project challenge before joining to orders.
+    columns:
+      - name: customer_id
+        data_type: varchar
+        description: Primary key for the customer.
+      - name: email
+        data_type: varchar
+        description: Customer email address.
+      - name: country
+        data_type: varchar
+        description: Country associated with the customer account or signup.
+      - name: created_at
+        data_type: date
+        description: Timestamp when the customer record was created.
+
+  - name: stg_orders
+    description: >
+      Staging view for orders from raw.orders. Normalizes order_date and updated_at
+      to dates, keeps the latest row per order_id by updated_at, and aggregates with
+      min(total_amount) when timestamps tie. Further date, amount, and validity filters
+      can be added per the assessment data-quality requirements.
+    columns:
+      - name: order_id
+        data_type: varchar
+        description: Business key for the order.
+      - name: customer_id
+        data_type: varchar
+        description: Customer who placed the order.
+      - name: order_date
+        data_type: date
+        description: Date of the order.
+      - name: status
+        data_type: varchar
+        description: Order lifecycle status.
+      - name: total_amount
+        data_type: decimal
+        description: Monetary total for the order.
+      - name: currency
+        data_type: varchar
+        description: Currency code for total_amount.
+      - name: updated_at
+        data_type: date
+        description: Last update time for the order row.

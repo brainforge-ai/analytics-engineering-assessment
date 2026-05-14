@@ -1,0 +1,84 @@
+version: 2
+
+data_tests:
+  - name: test_completed_orders_positive_amount
+    description: >
+      Asserts every completed order in stg_orders has a strictly positive total_amount.
+      Failing rows are completed orders with null or non-positive amounts.
+
+  - name: test_customer_no_future_created_date
+    description: >
+      Asserts no stg_customers row has created_at on or after current_date at test runtime.
+
+  - name: test_customer_no_invalid_created_date
+    description: >
+      Asserts created_at in stg_customers parses as a DATE when non-null; fails on values
+      that do not cast cleanly (DuckDB try_cast).
+
+  - name: test_customer_no_null_created_date
+    description: >
+      Asserts every stg_customers row has a non-null created_at after staging parsing.
+
+  - name: test_fct_monthly_revenue_no_nulls
+    description: >
+      Asserts fct_monthly_revenue has no null total_revenue for any country, currency,
+      and year_month grain.
+
+  - name: test_fct_monthly_revenue_uniqueness
+    description: >
+      Asserts at most one row per (country, currency, year_month) in fct_monthly_revenue;
+      failing rows are duplicate grain groups.
+
+  - name: test_inter_orders_completedorder_total_amount_over_zero
+    description: >
+      Asserts inter_orders rows with status completed have total_amount strictly greater
+      than zero.
+
+  - name: test_no_duplicate_customer_emails
+    description: >
+      Asserts non-null email in stg_customers is unique; failing rows are emails shared
+      by more than one customer.
+
+  - name: test_no_duplicate_orders
+    description: >
+      Asserts order_id is unique in stg_orders after staging deduplication; failing rows
+      are keys that appear more than once.
+
+  - name: test_order_customer_id_in_customers
+    description: >
+      Referential check: every stg_orders.customer_id must exist in stg_customers.
+      Failing rows are orders with no matching customer.
+
+  - name: test_order_no_future_order_date
+    description: >
+      Asserts stg_orders.order_date is strictly before current_date at test runtime.
+
+  - name: test_order_no_future_updated_date
+    description: >
+      Asserts stg_orders.updated_at is strictly before current_date at test runtime.
+
+  - name: test_order_no_invalid_order_date
+    description: >
+      Asserts non-null order_date in stg_orders casts to DATE; fails when try_cast fails
+      despite a non-null value.
+
+  - name: test_order_no_invalid_updated_date
+    description: >
+      Asserts non-null updated_at in stg_orders casts to DATE; fails when try_cast fails
+      despite a non-null value.
+
+  - name: test_order_no_null_order_date
+    description: >
+      Asserts stg_orders has no null order_date.
+
+  - name: test_order_no_null_total_amount
+    description: >
+      Asserts stg_orders has no null total_amount.
+
+  - name: test_order_no_null_updated_date
+    description: >
+      Asserts stg_orders has no null updated_at.
+
+  - name: test_product_no_null_unit_price
+    description: >
+      Asserts stg_products has no null unit_price.

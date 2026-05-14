@@ -1,0 +1,98 @@
+Im working on a dbt project and want guidance on defining schemas and refs as project configs versus inline
+
+—————
+
+notice that these stg_ files in the staging directory are simple refs. what are some best practices so that table and schema names are defined in dbt_project.yml. Also describe best practices related to schema.yml near to the models
+
+—————
+
+update dbt_project.yml to implement the source('raw', 'products') pattern. Also update the schema.yml so that column names and descriptions are supported.
+
+—————
+
+customer seed includes columns: customer_id,email,country,created_at
+orders seed includes columns: order_id,customer_id,order_date,status,total_amount,currency,updated_at
+products seed includes columns: product_id,name,category,unit_price
+
+update the yml accordingly.
+
+—————
+
+when running dbt compile, I can see that the stg_ tables' date columns as described in schema.yml are not being treated consistently. All date type columns are described with data_type: date, but only stg_customers is compiled to include a TO_DATE function. the dates on stg_orders are being compiled as VARCHAR.
+
+—————
+
+Im reading about the store failures configuration usable to quarantine data. In date columns, there are values like 'invalid_date'. would an accepted_values test be appropriate to apply. show me how to implement this quarantine pattern.
+
+—————
+
+The test_parseable macro is not routing rows. I think it is because the staging sql is applying a different function. how do I allow the staging model to tolerate invalid dates from the seeded table, while routing invalid dates to the audit tables?
+
+—————
+
+in dbt, when using date_spine utility, can start_date and end_date be computed as the min and max date of a fact data range?
+
+{{ dbt_utils.date_spine(
+        datepart="day",
+        start_date="to_date('2026-01-01', 'yyyy-mm-dd')",
+        end_date="to_date('2027-01-01', 'yyyy-mm-dd')"
+    ) }}
+
+—————
+
+I've added an intermediate model which would require a left join between two refs. it seems like aliases are not supported syntax. assist with this error: 
+Failure in model inter_orders (models/intermediate/inter_orders.sql)
+01:18:11    Runtime Error in model inter_orders (models/intermediate/inter_orders.sql)
+  Parser Error: syntax error at or near "."
+  
+  LINE 6:     order.order_id
+
+—————
+
+review the marts/fct_daily_revenue_by_country.sql file. This attempts to left join orders by day to a spine so as support trailing 30 day calculations. The trailing 30 day calculation is not working.
+
+—————
+
+I've added placeholder code to fct_monthly_revenue. I need to meet the following requirement, but cannot rationalize how this might apply to a materialized table that reports a monthly grain. 
+
+Know that updated_at comes from the inter_orders source table. the source orders table includes order status, so I expect that when an order is created, the first row would exist. if the order changes to a complete or cancelled status, these events might rationalize counting or not counting the order toward a given month.
+The requirement is below:
+
+Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+
+—————
+
+what does {{ this }} represent? does this represent the prior existing state of the materialized table?
+
+—————
+
+I've added an updated defintion for marts/fct_monthly_revenue.sql .  
+keeping the same requirement...
+Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+
+... 
+update the code to rationalize an incremental merge so that new and changed months are recomputed.
+
+—————
+
+I've added placeholder schema.yml to the intermediate and marts directories. update these to add table and column documentation.
+
+—————
+
+add table descriptions to staging/schema.yml  
+
+—————
+
+can a schema.yml type reference be added to macros to document tests?
+
+—————
+
+update macros/schema.yml to document the remaining macros
+
+—————
+
+in dbt is there a similiar schema.yml pattern to document tests in the dbt docs interface?
+
+—————
+
+add inline comments to each test where missing. update those where the comment is not representative of the code

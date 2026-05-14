@@ -1,0 +1,192 @@
+stg_ 
+  - Clean
+  - Dedupe
+  - Null Handling
+  - Date conformity
+
+
+Mart
+  - Incremental Load (Merge)
+  --> Fact: Monthly Revenue 
+    - Grain - Country x month
+
+Metrcs
+  Rolling 30 day (Lag, Rows Window)
+  Month-over-Month Growth (abs. / %growth)
+  Cohort Analysis
+
+Tests
+  - Sanity
+  - Freshness
+  - Relationship
+  
+
+DUCKDB
+dbt
+
+==== Assessment Section 1 ====
+ - RUN generate_seed_data.py
+
+Data quality issues added:
+  - ~6% bad dates (invalid, future, very old)
+  - ~10% pending orders with null amounts
+  - ~30% cancelled orders with near-zero amounts
+  - Some duplicate emails in customers
+  - One duplicate order_id with different data
+  - Added updated_at for incremental logic
+
+==============================
+
+Assessment Section 2: Mostly data review
+added data types to schema.yml
+
+==============================
+
+==== Assessment Section 3 ====
+
+~~ Approaching data quality from tests perspective.
+adapt typical sanity tests to jinja syntax, run with dbt test
+
+VERY INTERESTING -- DBT Compile was applying a TO_DATE to customers, but not to orders. Attempting explicit function in staging models.
+EXPLICIT -- Cast in the staging model files does compile appropriately. Root cause not identified.
+
+3.1 Staging models with data quality handling
+
+[  ] Build staging models that read from the seeds and handle data quality issues:
+  [ X ] Filter out or quarantine bad dates (invalid, future, too old).
+  [ X ] Handle null amounts appropriately (decide: filter, default, or flag).
+  [ X ] Deduplicate orders (keep the most recent by updated_at when order_id is duplicated).
+  [ X ] Handle duplicate customer emails (decide strategy: pick one, flag, etc.).
+  [ X ] Document your data quality assumptions in the model descriptions.
+  [ X ] Place models in models/staging/.
+
+deduplicate order_ids -- involved a same date and duplicate order. quarantined both records and persisted the lower value of the two in staging.
+
+
+D select * from "analytics"."main_dbt_test__audit"."source_duplicate_key_record_raw_orders_order_id";
+┌──────────┬─────────────┬────────────┬───────────┬──────────────┬──────────┬────────────┬───────────────────┐
+│ order_id │ customer_id │ order_date │  status   │ total_amount │ currency │ updated_at │ count_of_keyvalue │
+│ varchar  │   varchar   │  varchar   │  varchar  │    double    │ varchar  │  varchar   │       int64       │
+├──────────┼─────────────┼────────────┼───────────┼──────────────┼──────────┼────────────┼───────────────────┤
+│ ord_0501 │ cust_058    │ 2024-02-01 │ completed │       692.08 │ USD      │ 2024-02-11 │                 2 │
+│ ord_0501 │ cust_058    │ 2024-02-01 │ completed │       346.04 │ USD      │ 2024-02-11 │                 2 │
+└──────────┴─────────────┴────────────┴───────────┴──────────────┴──────────┴────────────┴───────────────────┘
+
+D select * from main_staging.stg_orders where order_id = 'ord_0501';
+┌──────────┬─────────────┬────────────┬───────────┬──────────────┬──────────┬────────────┐
+│ order_id │ customer_id │ order_date │  status   │ total_amount │ currency │ updated_at │
+│ varchar  │   varchar   │    date    │  varchar  │    double    │ varchar  │    date    │
+├──────────┼─────────────┼────────────┼───────────┼──────────────┼──────────┼────────────┤
+│ ord_0501 │ cust_058    │ 2024-02-01 │ completed │       346.04 │ USD      │ 2024-02-11 │
+└──────────┴─────────────┴────────────┴───────────┴──────────────┴──────────┴────────────┘
+
+====     3.1 Complete     ====
+
+==============================
+
+====    Begin 3.2 - 3.5   ====
+
+[ X ]  3.2 Intermediate model (optional but recommended)
+
+[ X ] Consider an intermediate model that enriches orders with customer attributes and computes derived fields (e.g., order year-month, is_valid order flag).
+
+3.3 Incremental mart: Monthly Revenue by Country
+
+Build one incremental mart in models/marts/:
+[ X ] schema.yml
+
+[ X ] Mart name: fct_monthly_revenue
+[ X ] Grain: One row per country per month (e.g., 2024-01, US).
+Required columns:
+[ X ] country (from customers)
+[ X ] year_month (YYYY-MM format from order_date)
+[ X ] total_revenue (sum of valid order amounts)
+[ X ] order_count (count of valid orders)
+[ X ] avg_order_value (average per order)
+[ X ] Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+
+[ X ] 3.4 Rolling metrics mart (bonus/complex)
+
+Build a second mart OR add to the first (choose one):
+[ X ] schema.yml
+
+[ X ] Option A: 30-day rolling revenue per country (current date + prior 29 days).
+[   ] Option B: Month-over-month revenue growth % per country.
+[   ] Option C: Customer cohort analysis (first order month → subsequent order behavior).
+This tests window functions and business metric calculation.
+
+3.5 Tests and documentation (strict requirements)
+
+Tests:
+[ X ] Uniqueness + not_null on fct_monthly_revenue primary key (country + year_month).
+[ X ] Relationship test: customer_id in orders references customers.
+[ X ] Custom/generic test: Assert that total_amount > 0 for completed orders (data quality test).
+[ X ] At least one singular test (SQL test) for a business rule.
+Documentation:
+[ X ] Business-friendly descriptions for all marts (not just technical).
+[ X ] Explain data quality decisions (what you filtered, why).
+[ X ] Document the incremental strategy.
+
+
+==============================
+
+
+
+==============================
+
+~~~ DUCKDB THINGS ~~~
+- list tables: 
+Duckdb synbtax -->  $SHOW ALL TABLES
+Typical SQL vv
+  SELECT table_name, table_schema 
+  FROM information_schema.tables;
+
+~~~               ~~~
+
+
+~~~ DBT THINGS ~~~
+Reconfirm 'ref's passthrough from seeds to staging
+
+dbt seed is reliably creating physical tables under _raw
+dbt run deployed view definitions to _staging schema as stg_<name>
+
+dbt docs generate -- created catalog.json under target directory
+database view's seed vs source table seems to distinguish the known csv from that csv as loaded to _raw schema
+
+
+Regarding schema.yml data-type...
+
+Supported Data Types
+dbt supports standard SQL data types, though the exact string you use depends on your data platform (e.g., Snowflake, BigQuery, Postgres). Common categories include:
+Numeric: int, integer, decimal, float, numeric.
+String: string, varchar, text, char.
+Date/Time: date, datetime, timestamp, time.
+Boolean: boolean.
+Complex/Semi-structured: json, array, variant.
+
+Confirmed addition of schema.yml to seeds directory. Note that example sql undefined table name is a known bug https://github.com/dbt-labs/dbt-docs/issues/407
+
+
+
+Jinja notes: 
+jinja variables ref{{}} versus source{{'',''}}
+
+  Summary: ref for every model in the chain; source for declared upstream tables, mostly at ingest. That split is what keeps lineage and semantics clean end-to-end.
+
+
+
+QUARANTINE DATA
+
+Using store_failures in Data TestsThe most common approach is to use built-in dbt tests with the --store-failures configuration. This allows you to run tests and save the rows that violate the test rules into a separate schema.Implementation: In your dbt_project.yml or specific model YAML, set store_failures: true.
+
+Result: Invalid records are stored in a new table named [test_name]__[model_name], usually in a dedicated dbt_test__audit schema
+
+Treatment of quarantine data is as follows: 
+- Macro test is written for edge-case -- invalid date 
+case: Date = 'invalid_date'
+handling: Tests fail, model does not.
+Model resolves bad data to null
+Macro runs on seed event routing exceptions to audit tables.
+
+select * from "analytics"."main_dbt_test__audit"."source_parseable_date_raw_orders_order_date";
+~~~            ~~~

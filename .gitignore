@@ -13,3 +13,10 @@ logs/
 .vscode/
 *.swp
 *.swo
+dbt_internal_packages/
+
+.venv
+.user*
+zz_*/
+package-lock.yml
+output.csv
