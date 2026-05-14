@@ -86,3 +86,5 @@ add table descriptions to staging/schema.yml
 can a schema.yml type reference be added to macros to document tests?
 
 —————
+
+in dbt is there a similiar schema.yml pattern to document tests in the dbt docs interface?
