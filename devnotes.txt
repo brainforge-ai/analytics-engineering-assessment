@@ -86,7 +86,23 @@ D select * from main_staging.stg_orders where order_id = 'ord_0501';
 
 ====    Begin 3.2 - 3.4   ====
 
+[ X ]  3.2 Intermediate model (optional but recommended)
 
+Consider an intermediate model that enriches orders with customer attributes and computes derived fields (e.g., order year-month, is_valid order flag).
+
+3.3 Incremental mart: Monthly Revenue by Country
+
+Build one incremental mart in models/marts/:
+
+Mart name: fct_monthly_revenue
+Grain: One row per country per month (e.g., 2024-01, US).
+Required columns:
+country (from customers)
+year_month (YYYY-MM format from order_date)
+total_revenue (sum of valid order amounts)
+order_count (count of valid orders)
+avg_order_value (average per order)
+Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
 
 
 ==============================

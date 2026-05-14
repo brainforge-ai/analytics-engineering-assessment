@@ -27,6 +27,6 @@ from (
     from {{ source('raw', 'orders') }}
 )
 where 
-    order_date = max_updated_at
+    updated_at = max_updated_at
 group by 
     1,2,3,4,6,7

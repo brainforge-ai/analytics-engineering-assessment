@@ -3,7 +3,7 @@
 -- Use is_incremental() and merge strategy based on updated_at.
 -- Also build one complex metric (sect 3.4): rolling 30d, MoM growth, or cohort.
 -- Replace the placeholder below with your implementation.
-
+/*
 select
   cast(null as varchar) as country,
   cast(null as varchar) as year_month,
@@ -11,3 +11,18 @@ select
   cast(null as bigint) as order_count,
   cast(null as double) as avg_order_value
 where 1 = 0
+*/
+
+
+SELECT
+    country
+    ,order_year_month
+    ,round(sum(total_amount),2) as total_revenue
+    ,count(distinct order_id) as order_count
+    ,round((sum(total_amount) / count(distinct order_id)),2) as avg_order_value
+FROM 
+    {{ref('inter_orders')}}
+group by 
+    1,2
+order by 
+    1 asc, 2 desc
