@@ -74,3 +74,15 @@ Incremental logic: Use is_incremental() to append new/updated records based on u
 update the code to rationalize an incremental merge so that new and changed months are recomputed.
 
 —————
+
+I've added placeholder schema.yml to the intermediate and marts directories. update these to add table and column documentation.
+
+—————
+
+add table descriptions to staging/schema.yml  
+
+—————
+
+can a schema.yml type reference be added to macros to document tests?
+
+—————
