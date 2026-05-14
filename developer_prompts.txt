@@ -15,3 +15,38 @@ orders seed includes columns: order_id,customer_id,order_date,status,total_amoun
 products seed includes columns: product_id,name,category,unit_price
 
 update the yml accordingly.
+
+—————
+
+when running dbt compile, I can see that the stg_ tables' date columns as described in schema.yml are not being treated consistently. All date type columns are described with data_type: date, but only stg_customers is compiled to include a TO_DATE function. the dates on stg_orders are being compiled as VARCHAR.
+
+—————
+
+Im reading about the store failures configuration usable to quarantine data. In date columns, there are values like 'invalid_date'. would an accepted_values test be appropriate to apply. show me how to implement this quarantine pattern.
+
+—————
+
+The test_parseable macro is not routing rows. I think it is because the staging sql is applying a different function. how do I allow the staging model to tolerate invalid dates from the seeded table, while routing invalid dates to the audit tables?
+
+—————
+
+in dbt, when using date_spine utility, can start_date and end_date be computed as the min and max date of a fact data range?
+
+{{ dbt_utils.date_spine(
+        datepart="day",
+        start_date="to_date('2026-01-01', 'yyyy-mm-dd')",
+        end_date="to_date('2027-01-01', 'yyyy-mm-dd')"
+    ) }}
+
+—————
+
+I've added an intermediate model which would require a left join between two refs. it seems like aliases are not supported syntax. assist with this error: 
+Failure in model inter_orders (models/intermediate/inter_orders.sql)
+01:18:11    Runtime Error in model inter_orders (models/intermediate/inter_orders.sql)
+  Parser Error: syntax error at or near "."
+  
+  LINE 6:     order.order_id
+
+—————
+
+review the marts/fct_daily_revenue_by_country.sql file. This attempts to left join orders by day to a spine so as support trailing 30 day calculations. The trailing 30 day calculation is not working.
