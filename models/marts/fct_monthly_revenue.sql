@@ -16,6 +16,7 @@ where 1 = 0
 
 SELECT
     country
+    ,currency
     ,order_year_month
     ,round(sum(total_amount),2) as total_revenue
     ,count(distinct order_id) as order_count
@@ -23,6 +24,6 @@ SELECT
 FROM 
     {{ref('inter_orders')}}
 group by 
-    1,2
+    1,2,3
 order by 
-    1 asc, 2 desc
+    1 asc, 2 asc, 3 desc
