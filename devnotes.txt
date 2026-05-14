@@ -84,7 +84,7 @@ D select * from main_staging.stg_orders where order_id = 'ord_0501';
 
 ==============================
 
-====    Begin 3.2 - 3.4   ====
+====    Begin 3.2 - 3.5   ====
 
 [ X ]  3.2 Intermediate model (optional but recommended)
 
@@ -125,7 +125,7 @@ Tests:
 Documentation:
 [   ] Business-friendly descriptions for all marts (not just technical).
 [   ] Explain data quality decisions (what you filtered, why).
-[   ] Document the incremental strategy.
+[ X ] Document the incremental strategy.
 
 
 ==============================

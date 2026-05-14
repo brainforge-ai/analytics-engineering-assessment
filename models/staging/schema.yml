@@ -8,7 +8,10 @@ sources:
     schema: "{{ target.schema }}_raw"
     tables:
       - name: products
-        description: Product catalog rows from the products seed.
+        description: >
+          Raw product catalog loaded from seed data. One row per product_id;
+          consumed by stg_products as the system of record for merchandising attributes
+          and unit pricing before downstream joins.
         columns:
           - name: product_id
             data_type: varchar
@@ -28,7 +31,10 @@ sources:
                     store_failures: true
 
       - name: customers
-        description: Customer dimension rows from the customers seed.
+        description: >
+          Raw customer records from seed data. May contain duplicate emails and
+          inconsistent date strings; staging applies parsing and (per project spec)
+          deduplication rules before use in order enrichment.
         columns:
           - name: customer_id
             data_type: varchar
@@ -52,7 +58,10 @@ sources:
                     store_failures: true
 
       - name: orders
-        description: Order fact rows from the orders seed.
+        description: >
+          Raw order transactions from seed data. Business keys can repeat across
+          updated_at; staging resolves duplicates and normalizes dates and amounts
+          before facts and intermediates consume this lineage.
         columns:
           - name: order_id
             data_type: varchar
@@ -94,7 +103,10 @@ sources:
 
 models:
   - name: stg_products
-    description: Staging layer for products; starts as a thin pass-through from raw.
+    description: >
+      Staging view for the product catalog: pass-through from raw.products with the
+      same grain (one row per product). Intended as the place to add catalog-specific
+      cleansing, renaming, or policy flags as the assessment spec evolves.
     columns:
       - name: product_id
         data_type: varchar
@@ -110,7 +122,10 @@ models:
         description: Price per unit in the given currency context.
 
   - name: stg_customers
-    description: Staging layer for customers; add deduplication and email rules per project spec.
+    description: >
+      Staging view for customers sourced from raw.customers. Parses created_at from
+      text into a date; extend here with email deduplication and other customer-level
+      quality rules required by the project challenge before joining to orders.
     columns:
       - name: customer_id
         data_type: varchar
@@ -126,7 +141,11 @@ models:
         description: Timestamp when the customer record was created.
 
   - name: stg_orders
-    description: Staging layer for orders; add date, amount, and duplicate-order handling per project spec.
+    description: >
+      Staging view for orders from raw.orders. Normalizes order_date and updated_at
+      to dates, keeps the latest row per order_id by updated_at, and aggregates with
+      min(total_amount) when timestamps tie. Further date, amount, and validity filters
+      can be added per the assessment data-quality requirements.
     columns:
       - name: order_id
         data_type: varchar
@@ -136,7 +155,7 @@ models:
         description: Customer who placed the order.
       - name: order_date
         data_type: date
-        description: Date of the order.     
+        description: Date of the order.
       - name: status
         data_type: varchar
         description: Order lifecycle status.

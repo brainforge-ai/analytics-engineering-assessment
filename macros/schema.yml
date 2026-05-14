@@ -1,0 +1,52 @@
+version: 2
+
+macros:
+  - name: test_parseable_date
+    description: >
+      Fails when non-null values in the column cannot be cast to a DATE (DuckDB).
+      Intended for raw or pre-staging relations, not for models that already null out invalid dates.
+    arguments:
+      - name: model
+        type: relation
+        description: The relation under test (injected by dbt).
+      - name: column_name
+        type: string
+        description: Column to validate for parseable dates.
+
+  - name: test_duplicate_key_record
+    description: >
+      Fails when the same non-null value appears more than once for the given column
+      (duplicate business keys or natural keys). Intended for sources or pre-staging
+      relations before deduplication.
+    arguments:
+      - name: model
+        type: relation
+        description: The relation under test (injected by dbt).
+      - name: column_name
+        type: string
+        description: Column that should be unique among non-null rows.
+
+  - name: test_valid_price
+    description: >
+      Fails rows where the tested column is null. Use on sources or pre-staging
+      relations where monetary fields must be present; extend the macro if you also
+      need non-null range checks (for example strictly positive amounts).
+    arguments:
+      - name: model
+        type: relation
+        description: The relation under test (injected by dbt).
+      - name: column_name
+        type: string
+        description: Numeric or price column expected to be non-null.
+
+  - name: test_positive_amount
+    description: >
+      Fails rows where the column is null or less than or equal to zero. Use as a
+      generic column test when amounts must be strictly positive.
+    arguments:
+      - name: model
+        type: relation
+        description: The relation under test (injected by dbt).
+      - name: column_name
+        type: string
+        description: Column that must be present and strictly greater than zero.

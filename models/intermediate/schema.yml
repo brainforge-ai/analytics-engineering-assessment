@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: inter_orders
+    description: >
+      Intermediate order grain enriched with customer country and revenue flags.
+      One row per staged order joined to the customer dimension; used as the
+      primary input for revenue marts.
+    columns:
+      - name: order_id
+        data_type: varchar
+        description: Business key for the order from staging.
+      - name: customer_id
+        data_type: varchar
+        description: Customer who placed the order.
+      - name: country
+        data_type: varchar
+        description: Customer country from the customer dimension; null if the join misses.
+      - name: order_date
+        data_type: date
+        description: Calendar date of the order.
+      - name: order_year_month
+        data_type: varchar
+        description: Order month as YYYY-MM from order_date (strftime).
+      - name: order_monthend_date
+        data_type: date
+        description: Last calendar day of the order month (last_day of order_date).
+      - name: status
+        data_type: varchar
+        description: Order lifecycle status from staging.
+      - name: is_revenue
+        data_type: integer
+        description: >
+          1 when the order counts toward revenue (status not refunded or cancelled);
+          0 otherwise.
+      - name: total_amount
+        data_type: decimal
+        description: Order monetary total in the order currency.
+      - name: currency
+        data_type: varchar
+        description: Currency code for total_amount.
+      - name: updated_at
+        data_type: date
+        description: Last update timestamp on the order row; drives incremental recomputation in downstream marts.

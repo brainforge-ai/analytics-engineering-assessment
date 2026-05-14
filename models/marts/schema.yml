@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: fct_monthly_revenue
+    description: >
+      Incremental fact table at grain (country, currency, calendar month) for
+      revenue-eligible orders only. Uses merge strategy keyed by country, currency,
+      and year_month; latest_updated_at tracks the max order updated_at in each
+      bucket for incremental invalidation.
+    columns:
+      - name: country
+        data_type: varchar
+        description: Customer country for the aggregated orders.
+      - name: currency
+        data_type: varchar
+        description: Currency of amounts in this row (no cross-currency conversion).
+      - name: year_month
+        data_type: varchar
+        description: Reporting month as YYYY-MM aligned to inter_orders.order_year_month.
+      - name: latest_updated_at
+        data_type: date
+        description: >
+          Maximum updated_at among revenue orders in this country, currency, and month;
+          compared to prior mart rows to detect stale buckets on incremental runs.
+      - name: total_revenue
+        data_type: decimal
+        description: Sum of order total_amount for revenue rows in the month, rounded to two decimals.
+      - name: order_count
+        data_type: bigint
+        description: Distinct count of order_id in the month.
+      - name: avg_order_value
+        data_type: decimal
+        description: total_revenue divided by order_count; null when order_count is zero.
+
+  - name: fct_daily_revenue_by_country
+    description: >
+      Daily revenue by country and currency on a continuous date spine (from 29 days
+      before the first order through 31 days after the last). Includes zero-filled
+      days for every country–currency pair present in intermediate orders, plus
+      thirty-day rolling revenue per partition.
+    columns:
+      - name: report_date
+        data_type: date
+        description: Calendar date on the spine; may have zero daily revenue when no orders occurred.
+      - name: country
+        data_type: varchar
+        description: Country dimension carried from intermediate orders.
+      - name: currency
+        data_type: varchar
+        description: Currency dimension carried from intermediate orders.
+      - name: daily_revenue
+        data_type: decimal
+        description: Sum of revenue-eligible order amounts on report_date for the country and currency.
+      - name: thirty_day_rolling_revenue
+        data_type: decimal
+        description: >
+          Rolling sum of daily_revenue over the current day and the prior 29 days
+          (30-day window), per country and currency, rounded to two decimals.
