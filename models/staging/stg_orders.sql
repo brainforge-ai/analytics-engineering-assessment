@@ -23,7 +23,7 @@ from (
         ,total_amount
         ,currency
         ,try_strptime(trim(updated_at::varchar), '%Y-%m-%d')::date as updated_at
-        ,max(order_date) over (partition by order_id order by updated_at desc rows between unbounded preceding and unbounded following) as max_updated_at
+        ,max(try_strptime(trim(order_date::varchar), '%Y-%m-%d')::date) over (partition by order_id order by updated_at desc rows between unbounded preceding and unbounded following) as max_updated_at
     from {{ source('raw', 'orders') }}
 )
 where 
