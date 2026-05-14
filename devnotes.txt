@@ -88,21 +88,42 @@ D select * from main_staging.stg_orders where order_id = 'ord_0501';
 
 [ X ]  3.2 Intermediate model (optional but recommended)
 
-Consider an intermediate model that enriches orders with customer attributes and computes derived fields (e.g., order year-month, is_valid order flag).
+[ X ] Consider an intermediate model that enriches orders with customer attributes and computes derived fields (e.g., order year-month, is_valid order flag).
 
 3.3 Incremental mart: Monthly Revenue by Country
 
 Build one incremental mart in models/marts/:
 
-Mart name: fct_monthly_revenue
-Grain: One row per country per month (e.g., 2024-01, US).
+[ X ] Mart name: fct_monthly_revenue
+[ X ] Grain: One row per country per month (e.g., 2024-01, US).
 Required columns:
-country (from customers)
-year_month (YYYY-MM format from order_date)
-total_revenue (sum of valid order amounts)
-order_count (count of valid orders)
-avg_order_value (average per order)
-Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+[ X ] country (from customers)
+[ X ] year_month (YYYY-MM format from order_date)
+[ X ] total_revenue (sum of valid order amounts)
+[ X ] order_count (count of valid orders)
+[ X ] avg_order_value (average per order)
+[   ] Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+
+[ X ] 3.4 Rolling metrics mart (bonus/complex)
+
+Build a second mart OR add to the first (choose one):
+
+[ X ] Option A: 30-day rolling revenue per country (current date + prior 29 days).
+[   ] Option B: Month-over-month revenue growth % per country.
+[   ] Option C: Customer cohort analysis (first order month → subsequent order behavior).
+This tests window functions and business metric calculation.
+
+3.5 Tests and documentation (strict requirements)
+
+Tests:
+[   ] Uniqueness + not_null on fct_monthly_revenue primary key (country + year_month).
+[   ] Relationship test: customer_id in orders references customers.
+[   ] Custom/generic test: Assert that total_amount > 0 for completed orders (data quality test).
+[   ] At least one singular test (SQL test) for a business rule.
+Documentation:
+[   ] Business-friendly descriptions for all marts (not just technical).
+[   ] Explain data quality decisions (what you filtered, why).
+[   ] Document the incremental strategy.
 
 
 ==============================
