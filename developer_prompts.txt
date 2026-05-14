@@ -50,3 +50,27 @@ Failure in model inter_orders (models/intermediate/inter_orders.sql)
 —————
 
 review the marts/fct_daily_revenue_by_country.sql file. This attempts to left join orders by day to a spine so as support trailing 30 day calculations. The trailing 30 day calculation is not working.
+
+—————
+
+I've added placeholder code to fct_monthly_revenue. I need to meet the following requirement, but cannot rationalize how this might apply to a materialized table that reports a monthly grain. 
+
+Know that updated_at comes from the inter_orders source table. the source orders table includes order status, so I expect that when an order is created, the first row would exist. if the order changes to a complete or cancelled status, these events might rationalize counting or not counting the order toward a given month.
+The requirement is below:
+
+Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+
+—————
+
+what does {{ this }} represent? does this represent the prior existing state of the materialized table?
+
+—————
+
+I've added an updated defintion for marts/fct_monthly_revenue.sql .  
+keeping the same requirement...
+Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+
+... 
+update the code to rationalize an incremental merge so that new and changed months are recomputed.
+
+—————

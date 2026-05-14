@@ -50,6 +50,7 @@ prep_fact as (
             currency,
             round(sum(total_amount),2) as total_amount
         from {{ ref('inter_orders') }}
+        where is_revenue = 1
         group by 1, 2, 3
     ) as agg
         on spine.report_date = agg.order_date

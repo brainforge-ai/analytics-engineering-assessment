@@ -6,6 +6,11 @@ SELECT
     ,strftime(ordr.order_date, '%Y-%m') as order_year_month
     ,last_day(ordr.order_date) as order_monthend_date
     ,ordr.status
+    ,case 
+        when ordr.status in ('refunded', 'cancelled')
+        then 0
+        else 1
+    end as is_revenue
     ,ordr.total_amount
     ,ordr.currency
     ,ordr.updated_at

@@ -29,7 +29,10 @@ with inter as (
 {% if is_incremental() %}
 
 touched_buckets as (
-    select distinct o.country, o.currency, o.order_year_month
+    select 
+        o.country
+        , o.currency
+        , o.order_year_month
     from inter as o
     where not exists (
         select 1
@@ -38,14 +41,23 @@ touched_buckets as (
             and t.currency = o.currency
             and t.year_month = o.order_year_month
     )
+    group by
+         1,2,3
+
     union
-    select distinct o.country, o.currency, o.order_year_month
+
+    select  
+        o.country
+        , o.currency
+        , o.order_year_month
     from inter as o
     inner join {{ this }} as t
         on t.country = o.country
         and t.currency = o.currency
         and t.year_month = o.order_year_month
     where o.updated_at > t.latest_updated_at
+    group by 
+        1,2,3
 ),
 
 scoped as (
@@ -55,12 +67,14 @@ scoped as (
         on o.country = tb.country
         and o.currency = tb.currency
         and o.order_year_month = tb.order_year_month
+    where o.is_revenue = 1
 ),
 
 {% else %}
 
 scoped as (
     select * from inter
+    where is_revenue = 1
 ),
 
 {% endif %}

@@ -103,7 +103,7 @@ Required columns:
 [ X ] total_revenue (sum of valid order amounts)
 [ X ] order_count (count of valid orders)
 [ X ] avg_order_value (average per order)
-[   ] Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
+[ X ] Incremental logic: Use is_incremental() to append new/updated records based on updated_at. Document your incremental strategy.
 
 [ X ] 3.4 Rolling metrics mart (bonus/complex)
 
