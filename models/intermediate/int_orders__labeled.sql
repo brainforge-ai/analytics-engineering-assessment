@@ -1,0 +1,76 @@
+-- Assigns a dq_reason to every order row. NULL means the row is clean.
+-- Downstream: int_orders_enriched selects WHERE dq_reason IS NULL,
+--             int_orders__quarantine selects WHERE dq_reason IS NOT NULL.
+with orders as (
+
+    select
+        order_id,
+        customer_id,
+        order_date_raw,
+        order_date,
+        status,
+        total_amount,
+        currency,
+        updated_at
+    from {{ ref('stg_orders') }}
+
+),
+
+ranked as (
+
+    -- Deterministic dedupe: latest updated_at wins; ties break to higher amount.
+    select
+        *,
+        row_number() over (
+            partition by order_id
+            order by updated_at desc nulls last,
+                     total_amount desc nulls last
+        ) as row_num
+    from orders
+
+),
+
+labeled as (
+
+    select
+        order_id,
+        customer_id,
+        order_date_raw,
+        order_date,
+        status,
+        total_amount,
+        currency,
+        updated_at,
+        row_num,
+        case
+            when row_num > 1
+                then 'duplicate_order_id'
+            when order_date is null
+                then 'invalid_date'
+            when order_date > date '{{ var("max_valid_order_date") }}'
+                then 'future_date'
+            when order_date < date '{{ var("min_valid_order_date") }}'
+                then 'stale_date'
+            when status = 'completed'
+                 and (total_amount is null or total_amount <= 0)
+                then 'completed_with_bad_amount'
+            when total_amount is null and status <> 'pending'
+                then 'null_amount_unexpected'
+            else null
+        end as dq_reason
+    from ranked
+
+)
+
+select
+    order_id,
+    customer_id,
+    order_date_raw,
+    order_date,
+    status,
+    total_amount,
+    currency,
+    updated_at,
+    row_num,
+    dq_reason
+from labeled

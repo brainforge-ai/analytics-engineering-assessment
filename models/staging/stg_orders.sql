@@ -1,17 +1,31 @@
-{{ config(materialized='view') }}
+with source as (
 
--- Clean, deduplicated orders that passed every staging-layer data-quality rule.
--- Rejected rows are not dropped but live in stg_orders__quarantine with a
--- reason code so that downstream DQ monitoring can count them.
+    select * from {{ ref('orders') }}
+
+),
+
+parsed as (
+
+    select
+        cast(order_id    as varchar)     as order_id,
+        cast(customer_id as varchar)     as customer_id,
+        cast(order_date  as varchar)     as order_date_raw,
+        try_cast(order_date as date)     as order_date,
+        cast(status      as varchar)     as status,
+        try_cast(total_amount as double) as total_amount,
+        cast(currency    as varchar)     as currency,
+        try_cast(updated_at as date)     as updated_at
+    from source
+
+)
 
 select
     order_id,
     customer_id,
+    order_date_raw,
     order_date,
     status,
     total_amount,
     currency,
-    updated_at,
-    strftime(order_date, '%Y-%m') as year_month
-from {{ ref('stg_orders__labeled') }}
-where dq_reason is null
+    updated_at
+from parsed

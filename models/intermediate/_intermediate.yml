@@ -2,16 +2,83 @@ version: 2
 
 models:
 
+  - name: int_customers
+    description: >
+      Adds email_is_shared to each customer row. TRUE when the same email
+      appears against more than one customer_id in stg_customers. The flag
+      is computed here rather than in staging because it requires a self-join
+      and represents a business decision and downstream models decide how to use it.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: Lower-cased, trimmed email from stg_customers.
+      - name: country
+        description: ISO country code.
+        tests:
+          - not_null
+      - name: created_at
+        description: Account creation date.
+      - name: email_is_shared
+        description: TRUE when this email also appears on at least one other customer_id.
+        tests:
+          - not_null
+
+  - name: int_orders__labeled
+    description: >
+      Assigns a dq_reason to every order row. NULL means clean. Downstream,
+      int_orders_enriched reads WHERE dq_reason IS NULL and int_orders__quarantine
+      reads WHERE dq_reason IS NOT NULL, keeping both views in lock-step.
+    columns:
+      - name: order_id
+        description: Order identifier (duplicates have row_num > 1).
+        tests:
+          - not_null
+      - name: row_num
+        description: 1 for the canonical row per order_id, >1 for duplicates.
+        tests:
+          - not_null
+      - name: dq_reason
+        description: >
+          NULL = clean. Values: duplicate_order_id, invalid_date, future_date,
+          stale_date, completed_with_bad_amount, null_amount_unexpected.
+
+  - name: int_orders__quarantine
+    description: >
+      Order rows that failed DQ checks, tagged with the reason. Query this model
+      to count rejections by reason over time for DQ dashboards or alerting.
+    columns:
+      - name: order_id
+        description: Order identifier of the rejected row.
+        tests:
+          - not_null
+      - name: dq_reason
+        description: Why the row was rejected.
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - invalid_date
+                - future_date
+                - stale_date
+                - completed_with_bad_amount
+                - null_amount_unexpected
+                - duplicate_order_id
+      - name: quarantined_at
+        description: Build timestamp when the row was routed to quarantine.
+        tests:
+          - not_null
+
   - name: int_orders_enriched
     description: >
-      Orders joined to customer attributes (country, email flags) with one
-      business rule encoded centrally: `is_revenue_recognizable`.  Revenue and
-      cohort marts both read from here so the rule lives in exactly one place.
+      Clean orders (dq_reason IS NULL, row_num = 1) joined to int_customers with
+      is_revenue_recognizable encoded centrally. All revenue and cohort marts
+      read from here.
 
-      Revenue recognition assumption (revisit with Finance):
-        * `completed`, `shipped`     -> recognised
-        * `pending`                  -> NOT yet recognised
-        * `cancelled`, `refunded`    -> NOT recognised
+      LEFT JOIN on customers is intentional — see model header for reasoning.
     columns:
       - name: order_id
         description: Primary key.
@@ -26,13 +93,13 @@ models:
               to: ref('stg_customers')
               field: customer_id
       - name: country
-        description: Customer country at time of build. May be NULL if customer row is missing.
+        description: Customer country. May be NULL if customer row is missing (see LEFT JOIN note).
       - name: order_date
         description: Order date.
         tests:
           - not_null
       - name: year_month
-        description: "Calendar month as 'YYYY-MM' string derived from order_date."
+        description: "YYYY-MM string pre-computed from order_date."
         tests:
           - not_null
       - name: status
@@ -42,10 +109,10 @@ models:
       - name: total_amount
         description: Order amount. May be NULL for pending orders.
       - name: updated_at
-        description: Source-system update timestamp; the watermark for incremental marts.
+        description: Source-system update timestamp.
         tests:
           - not_null
       - name: is_revenue_recognizable
-        description: TRUE when status is in (completed, shipped). Single source of truth for revenue logic.
+        description: TRUE when status is in (completed, shipped). Single source of truth.
         tests:
           - not_null

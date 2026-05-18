@@ -1,24 +1,16 @@
-{{ config(materialized='table') }}
-
--- Customer cohort retention.  One row per (cohort_month, months_since_first_order).
+-- Customer cohort retention. Grain: one row per (cohort_month, months_since_first_order).
+-- Each customer is assigned to the month of their first revenue-recognised order.
+-- We track how many return in each subsequent month.
 --
--- Why cohort instead of MoM or 30-day rolling?
---   The seed contains ~1k orders spanning roughly three calendar months.
---   * Month-over-month gives at most two growth data points -- thin signal.
---   * 30-day rolling on country x day is jittery for small countries with
---     gaps in daily activity.
---   * Cohort flattens the volume problem: every customer contributes to
---     exactly one cohort, and offsets compress the time dimension into a
---     small, readable matrix.  It is the metric this dataset can actually
---     support.
---
--- Output grain: cohort_month x months_since_first_order
--- Output columns: cohort_size, active_customers, retention_rate,
---                 cohort_revenue, avg_order_value
-
+-- Cohort was chosen over MoM growth (only 2 data points across ~3 months of data)
+-- and 30-day rolling (too jittery for small per-country volumes).
 with revenue_orders as (
 
-    select *
+    select
+        order_id,
+        customer_id,
+        order_date,
+        total_amount
     from {{ ref('int_orders_enriched') }}
     where is_revenue_recognizable = true
 
@@ -28,8 +20,8 @@ first_orders as (
 
     select
         customer_id,
-        min(order_date)                            as first_order_date,
-        strftime(min(order_date), '%Y-%m')         as cohort_month
+        min(order_date)                    as first_order_date,
+        strftime(min(order_date), '%Y-%m') as cohort_month
     from revenue_orders
     group by 1
 
@@ -37,8 +29,7 @@ first_orders as (
 
 cohort_size as (
 
-    -- Cohort size = customers whose first revenue-recognised order falls in
-    -- that month.  Computed once so retention_rate has a stable denominator.
+    -- Computed once so retention_rate has a stable denominator.
     select
         cohort_month,
         count(distinct customer_id) as cohort_size
@@ -50,13 +41,13 @@ cohort_size as (
 activity as (
 
     select
-        f.cohort_month,
-        date_diff('month', f.first_order_date, o.order_date) as months_since_first_order,
-        o.customer_id,
-        o.total_amount
-    from revenue_orders o
-    inner join first_orders f
-      on o.customer_id = f.customer_id
+        first_orders.cohort_month,
+        date_diff('month', first_orders.first_order_date, revenue_orders.order_date) as months_since_first_order,
+        revenue_orders.customer_id,
+        revenue_orders.total_amount
+    from revenue_orders
+    inner join first_orders
+        on revenue_orders.customer_id = first_orders.customer_id
 
 ),
 
@@ -74,14 +65,14 @@ aggregated as (
 )
 
 select
-    a.cohort_month,
-    a.months_since_first_order,
-    cs.cohort_size,
-    a.active_customers,
-    cast(a.active_customers as double) / nullif(cs.cohort_size, 0) as retention_rate,
-    a.cohort_revenue,
-    a.avg_order_value
-from aggregated a
-left join cohort_size cs
-  on a.cohort_month = cs.cohort_month
-order by a.cohort_month, a.months_since_first_order
+    aggregated.cohort_month,
+    aggregated.months_since_first_order,
+    cohort_size.cohort_size,
+    aggregated.active_customers,
+    cast(aggregated.active_customers as double) / nullif(cohort_size.cohort_size, 0) as retention_rate,
+    aggregated.cohort_revenue,
+    aggregated.avg_order_value
+from aggregated
+left join cohort_size
+    on aggregated.cohort_month = cohort_size.cohort_month
+order by aggregated.cohort_month, aggregated.months_since_first_order

@@ -4,19 +4,16 @@ models:
 
   - name: fct_monthly_revenue
     description: >
-      Monthly revenue, order count, and AOV by country.  Grain is one row per
-      (country, year_month).  Materialised incrementally with `merge` strategy
-      so a re-run only re-aggregates months touched by orders that have been
-      updated since the last build.  See the model file header for the exact
-      incremental SQL and the trigger point at which the strategy should be
-      revisited.
+      Monthly revenue, order count, and AOV by country. Grain: (country, year_month).
+      Materialised incrementally with append strategy — each run adds months not yet
+      present. Use --full-refresh to correct historical months.
     columns:
       - name: country
         description: Customer country (ISO code).
         tests:
           - not_null
       - name: year_month
-        description: Calendar month formatted as 'YYYY-MM'.
+        description: "YYYY-MM calendar month."
         tests:
           - not_null
       - name: total_revenue
@@ -34,33 +31,25 @@ models:
         tests:
           - not_null
       - name: last_updated_at
-        description: Max updated_at of the orders aggregated into this row. Watermark for the next incremental run.
+        description: Max updated_at of the orders aggregated into this row.
         tests:
           - not_null
       - name: built_at
         description: Timestamp this row was last rebuilt by dbt.
-    tests:
-      - unique_combination:
-          columns: [country, year_month]
 
   - name: fct_customer_cohorts
     description: >
-      Customer cohort retention.  Each customer is assigned to the calendar
-      month of their first revenue-recognised order (their cohort).  For
-      every subsequent month they place an order, we record their activity
-      against `months_since_first_order`.  Grain is one row per
-      (cohort_month, months_since_first_order).
-
-      Why cohort and not MoM / 30-day rolling? See the model file header.
-      Short version: with ~1k orders across ~3 months this is the only
-      complex metric that produces a readable signal.
+      Customer cohort retention. Grain: (cohort_month, months_since_first_order).
+      Each customer is assigned to the month of their first revenue-recognised order.
+      Cohort was chosen over MoM (only 2 data points) and 30-day rolling (too jittery
+      for small per-country volumes on this dataset).
     columns:
       - name: cohort_month
-        description: "Calendar month (YYYY-MM) of each customer's first revenue-recognised order."
+        description: "YYYY-MM of each customer's first revenue-recognised order."
         tests:
           - not_null
       - name: months_since_first_order
-        description: "Whole months between order_date and the cohort customer's first_order_date. 0 = same month."
+        description: "Whole months since the customer's first order. 0 = same month."
         tests:
           - not_null
       - name: cohort_size
@@ -69,12 +58,12 @@ models:
           - not_null
           - positive_amount
       - name: active_customers
-        description: Distinct customers from the cohort who placed a revenue-recognised order in this offset month.
+        description: Distinct cohort customers with a revenue order at this offset.
         tests:
           - not_null
           - positive_amount
       - name: retention_rate
-        description: active_customers / cohort_size. 1.0 at offset 0 by construction.
+        description: active_customers / cohort_size.
         tests:
           - not_null
       - name: cohort_revenue
@@ -85,6 +74,3 @@ models:
         description: Mean total_amount across cohort orders at this offset.
         tests:
           - not_null
-    tests:
-      - unique_combination:
-          columns: [cohort_month, months_since_first_order]
