@@ -1,114 +1,12 @@
-# Analytics Engineering Assessment  - Ayoade Adegbite
+# Analytics Engineering Assessment — Ayoade Adegbite
 
 A dbt + DuckDB analytics engineering project built to solve a realistic e-commerce data challenge. This repository demonstrates:
-- **Data quality handling** through staging, deduplication, and quarantine
+- **Data quality handling** through a label-and-split pattern that makes bad data observable
 - **Incremental modeling** for monthly revenue aggregates
 - **Complex business metrics** via cohort analysis
 - **Testing and documentation** for warehouse reliability
 
-## What this solution includes
-
-- `models/staging/`
-  - `stg_orders__labeled.sql` — parse source orders, deduplicate by `order_id`, and produce `dq_reason`
-  - `stg_orders.sql` — clean, trusted sales orders
-  - `stg_orders__quarantine.sql` — rejected orders with audit metadata
-  - `stg_customers.sql` — normalized customer records, deduped by `customer_id`, flags shared emails
-  - `stg_products.sql` — typed product output for downstream use
-- `models/intermediate/int_orders_enriched.sql`
-  - enriches orders with customer attributes and encodes the revenue-recognition rule once
-- `models/marts/fct_monthly_revenue.sql`
-  - incremental monthly revenue mart by `country` and `year_month`
-- `models/marts/fct_customer_cohorts.sql`
-  - cohort analysis chosen as the complex business metric
-- `macros/positive_amount.sql`
-  - custom generic test for positive revenue values
-- `macros/unique_combination.sql`
-  - custom generic test for composite uniqueness without adding dbt packages
-- `tests/`
-  - singular business-rule tests shipped with the challenge
-
-## Key project decisions
-
-### Data quality strategy
-
-- Uses a **split-at-staging** pattern: clean rows flow to `stg_orders`, bad rows flow to `stg_orders__quarantine`
-- Keeps bad data observable instead of dropping it silently
-- Quarantines invalid dates, future dates, stale dates, duplicate `order_id` rows, and completed orders with invalid amounts
-- Allows `pending` orders with null amounts through staging because revenue recognition is handled later
-- Flags shared customer emails instead of merging or dropping them
-
-### Intermediate layer
-
-- Encodes `is_revenue_recognizable` in `int_orders_enriched`
-- Ensures downstream marts share the same business rule for revenue eligibility
-- Uses a `LEFT JOIN` on customers so missing customer metadata does not silently drop revenue
-
-### Incremental mart
-
-- `fct_monthly_revenue` is materialized as `incremental`
-- Uses `MERGE` logic by `country` + `year_month`
-- Recomputes any touched month in full when source rows update, avoiding stale aggregate bugs
-- Stores `last_updated_at` on the mart to make the watermark self-contained
-
-### Complex metric
-
-- Implements **customer cohort analysis** in `fct_customer_cohorts`
-- Chooses cohort analysis because the dataset is small and cohort metrics deliver richer signal than noisy 30-day rolling or MoM growth with only a few months of data
-- Computes cohort size, active customers by offset, retention rate, revenue, and average order value
-
-### Testing and documentation
-
-- Uses the built-in dbt test framework plus custom generic tests
-- Covers:
-  - uniqueness and composite uniqueness
-  - not-null constraints on business-critical fields
-  - accepted values and relationships
-  - custom positive-amount assertions
-  - singular business-rule tests for completed order amounts and duplicate orders
-- Documents model purpose, business assumptions, and the incremental strategy
-
-## How to run
-
-From the project root:
-
-```bash
-DBT_PROFILES_DIR=. dbt seed && dbt run && dbt test
-```
-
-This uses the local DuckDB profile defined in `profiles.yml` and the seeds in `seeds/`.
-
-## Run individual models
-
-If you want to build or validate a specific model, run it directly after seeding:
-
-```bash
-DBT_PROFILES_DIR=. dbt seed
-DBT_PROFILES_DIR=. dbt run --models stg_orders
-DBT_PROFILES_DIR=. dbt run --models stg_orders__quarantine
-DBT_PROFILES_DIR=. dbt run --models stg_customers
-DBT_PROFILES_DIR=. dbt run --models stg_products
-DBT_PROFILES_DIR=. dbt run --models int_orders_enriched
-DBT_PROFILES_DIR=. dbt run --models fct_monthly_revenue
-DBT_PROFILES_DIR=. dbt run --models fct_customer_cohorts
-```
-
-You can also run by layer:
-
-```bash
-DBT_PROFILES_DIR=. dbt run --models staging+
-DBT_PROFILES_DIR=. dbt run --models intermediate+
-DBT_PROFILES_DIR=. dbt run --models marts+
-```
-
-Or test a single model output:
-
-```bash
-DBT_PROFILES_DIR=. dbt test --models stg_orders
-```
-
-## Seed source diagram
-
-![Seed source diagram](seed_source.png)
+---
 
 ## Repository structure
 
@@ -119,8 +17,7 @@ DBT_PROFILES_DIR=. dbt test --models stg_orders
 ├── dbt_project.yml
 ├── profiles.yml
 ├── macros/
-│   ├── positive_amount.sql
-│   └── unique_combination.sql
+│   └── positive_amount.sql
 ├── scripts/
 │   └── generate_seed_data.py
 ├── seeds/
@@ -132,11 +29,12 @@ DBT_PROFILES_DIR=. dbt test --models stg_orders
 │   │   ├── _staging.yml
 │   │   ├── stg_customers.sql
 │   │   ├── stg_orders.sql
-│   │   ├── stg_orders__labeled.sql
-│   │   ├── stg_orders__quarantine.sql
 │   │   └── stg_products.sql
 │   ├── intermediate/
 │   │   ├── _intermediate.yml
+│   │   ├── int_customers.sql
+│   │   ├── int_orders__labeled.sql
+│   │   ├── int_orders__quarantine.sql
 │   │   └── int_orders_enriched.sql
 │   └── marts/
 │       ├── _marts.yml
@@ -147,8 +45,116 @@ DBT_PROFILES_DIR=. dbt test --models stg_orders
     └── test_no_duplicate_orders.sql
 ```
 
+---
+
+## What this solution includes
+
+### Staging layer
+- `stg_orders` — type-cast only; no DQ filtering or deduplication at this layer
+- `stg_customers` — type-cast and lowercase/trim email; no business logic
+- `stg_products` — type-cast only
+
+### Intermediate layer
+- `int_customers` — adds `email_is_shared` flag via a self-join on email; shared emails are flagged, not dropped
+- `int_orders__labeled` — deduplicates orders by `order_id` and assigns a `dq_reason` to every row (NULL = clean)
+- `int_orders__quarantine` — rejected rows (where `dq_reason IS NOT NULL`) routed here for DQ monitoring
+- `int_orders_enriched` — clean orders joined to customer attributes; encodes `is_revenue_recognizable` once for all downstream marts
+
+### Marts
+- `fct_monthly_revenue` — incremental (append strategy) monthly revenue by `country` and `year_month`
+- `fct_customer_cohorts` — cohort retention analysis: active customers and revenue by cohort month and offset
+
+### Macros
+- `macros/positive_amount.sql` — generic test asserting a column value is > 0
+
+---
+
+## Key project decisions
+
+### Data quality: label and split at the intermediate layer
+
+Rather than silently filtering bad rows, `int_orders__labeled` assigns a `dq_reason` to every order:
+
+| Reason code | Condition |
+|---|---|
+| `duplicate_order_id` | `row_num > 1` after dedup window |
+| `invalid_date` | `order_date` could not be parsed |
+| `future_date` | `order_date > max_valid_order_date` var |
+| `stale_date` | `order_date < min_valid_order_date` var |
+| `completed_with_bad_amount` | `status = completed` and `total_amount` is null or ≤ 0 |
+| `null_amount_unexpected` | `total_amount` is null on any non-pending status |
+
+Clean rows flow to `int_orders_enriched` (`dq_reason IS NULL`).
+Rejected rows flow to `int_orders__quarantine` (`dq_reason IS NOT NULL`), keeping the count by reason visible for dashboards and alerting.
+
+`pending` orders with null amounts are kept — revenue recognition is handled downstream.
+
+### Customer email deduplication
+
+`int_customers` flags shared emails via `email_is_shared`. The rows are never dropped; the right resolution (same person / household / ingest bug) is a business decision, not an engineering one.
+
+### Intermediate enrichment
+
+`int_orders_enriched` encodes `is_revenue_recognizable` (`status IN ('completed', 'shipped')`) once, so all marts share a single definition.
+
+The join to `int_customers` uses `LEFT JOIN` deliberately: if a customer row is unexpectedly missing, the order is preserved with `NULL` country rather than silently dropped. `fct_monthly_revenue` already filters `country IS NOT NULL`, so an orphaned order becomes a visible anomaly rather than a hidden revenue loss.
+
+### Incremental mart
+
+`fct_monthly_revenue` uses `incremental_strategy = 'append'`. Each run inserts only months not yet present in the mart:
+
+```sql
+{% if is_incremental() %}
+  and year_month > (select max(year_month) from {{ this }})
+{% endif %}
+```
+
+For corrections to historical months, run with `--full-refresh`.
+
+### Complex metric: cohort analysis
+
+`fct_customer_cohorts` implements first-purchase cohort retention. Cohort was chosen over:
+- Month-over-month growth — only ~2 data points across ~3 months of data
+- 30-day rolling — too jittery for small per-country volumes
+
+---
+
+## How to run
+
+```bash
+DBT_PROFILES_DIR=. dbt seed && dbt run && dbt test
+```
+
+### Run individual models
+
+```bash
+DBT_PROFILES_DIR=. dbt run --select stg_orders
+DBT_PROFILES_DIR=. dbt run --select int_customers
+DBT_PROFILES_DIR=. dbt run --select int_orders__labeled
+DBT_PROFILES_DIR=. dbt run --select int_orders__quarantine
+DBT_PROFILES_DIR=. dbt run --select int_orders_enriched
+DBT_PROFILES_DIR=. dbt run --select fct_monthly_revenue
+DBT_PROFILES_DIR=. dbt run --select fct_customer_cohorts
+```
+
+### Run by layer
+
+```bash
+DBT_PROFILES_DIR=. dbt run --select staging
+DBT_PROFILES_DIR=. dbt run --select intermediate
+DBT_PROFILES_DIR=. dbt run --select marts
+```
+
+### Test a single model
+
+```bash
+DBT_PROFILES_DIR=. dbt test --select int_orders_enriched
+```
+
+---
+
 ## Notes
 
-- The project is intentionally designed for the seed dataset (~1,000 orders) but documents the next scalability trigger points.
-- `vars` in `dbt_project.yml` define the valid `order_date` window, so the model can treat source date anomalies as data quality issues rather than depending on `current_date`.
-- The solution avoids extra dbt package dependencies to keep the run experience simple.
+- `vars` in `dbt_project.yml` define the valid `order_date` window (`min_valid_order_date`, `max_valid_order_date`), so date anomalies are treated as data quality issues rather than depending on `current_date`.
+- The project has no external dbt package dependencies.
+- The dataset is intentionally small (~1,000 orders); the model comments document where strategy changes would be appropriate at larger volumes.
