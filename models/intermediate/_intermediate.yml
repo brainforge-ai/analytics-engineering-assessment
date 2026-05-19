@@ -5,9 +5,16 @@ models:
   - name: int_customers
     description: >
       Adds email_is_shared to each customer row. TRUE when the same email
-      appears against more than one customer_id in stg_customers. The flag
-      is computed here rather than in staging because it requires a self-join
-      and represents a business decision and downstream models decide how to use it.
+      appears against more than one customer_id in stg_customers.
+
+      These rows are not dropped. Each customer_id is still a distinct record,
+      only the email column is shared. Whether that represents the same person
+      using multiple accounts, a household, or an ingest bug is a business
+      decision, not an engineering one. Downstream models can filter or segment
+      on this flag; the resolution does not belong at the pipeline layer.
+
+      The flag is computed here rather than in staging because it requires a
+      self-join and carries business meaning that staging should not encode.
     columns:
       - name: customer_id
         description: Primary key.
@@ -23,7 +30,11 @@ models:
       - name: created_at
         description: Account creation date.
       - name: email_is_shared
-        description: TRUE when this email also appears on at least one other customer_id.
+        description: >
+          TRUE when this email also appears on at least one other customer_id.
+          The affected rows are kept — only the email is shared, not the full
+          customer record. Dropping them would silently remove valid order
+          history for those customers.
         tests:
           - not_null
 
