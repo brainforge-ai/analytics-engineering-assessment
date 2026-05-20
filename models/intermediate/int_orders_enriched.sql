@@ -5,9 +5,7 @@
 --
 -- LEFT JOIN on customers is intentional: preserves revenue-recognizable orders even if a
 -- customer row is unexpectedly missing (deleted CRM record, referential integrity slip).
--- The relationships test on customer_id is the early warning; LEFT JOIN is the safety net.
--- fct_monthly_revenue already filters country IS NOT NULL, so an orphaned order surfaces
--- as a visible NULL rather than disappearing silently from the pipeline.
+
 with orders as (
 
     select
