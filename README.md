@@ -32,7 +32,6 @@ A dbt + DuckDB analytics engineering project built to solve a realistic e-commer
 │   │   └── stg_products.sql
 │   ├── intermediate/
 │   │   ├── _intermediate.yml
-│   │   ├── int_customers.sql
 │   │   ├── int_orders__labeled.sql
 │   │   ├── int_orders__quarantine.sql
 │   │   └── int_orders_enriched.sql
@@ -51,11 +50,10 @@ A dbt + DuckDB analytics engineering project built to solve a realistic e-commer
 
 ### Staging layer
 - `stg_orders` — type-cast only; no DQ filtering or deduplication at this layer
-- `stg_customers` — type-cast and lowercase/trim email; no business logic
+- `stg_customers` — type-cast, normalize email, and flag `email_is_shared`; no business-resolution logic
 - `stg_products` — type-cast only
 
 ### Intermediate layer
-- `int_customers` — adds `email_is_shared` flag via a self-join on email; shared emails are flagged, not dropped
 - `int_orders__labeled` — deduplicates orders by `order_id` and assigns a `dq_reason` to every row (NULL = clean)
 - `int_orders__quarantine` — rejected rows (where `dq_reason IS NOT NULL`) routed here for DQ monitoring
 - `int_orders_enriched` — clean orders joined to customer attributes; encodes `is_revenue_recognizable` once for all downstream marts
@@ -91,13 +89,13 @@ Rejected rows flow to `int_orders__quarantine` (`dq_reason IS NOT NULL`), keepin
 
 ### Customer email deduplication
 
-`int_customers` flags shared emails via `email_is_shared`. The rows are never dropped; the right resolution (same person / household / ingest bug) is a business decision, not an engineering one.
+`stg_customers` flags shared emails via `email_is_shared`. The rows are never dropped; the right resolution (same person / household / ingest bug) is a business decision, not an engineering one.
 
 ### Intermediate enrichment
 
 `int_orders_enriched` encodes `is_revenue_recognizable` (`status IN ('completed', 'shipped')`) once, so all marts share a single definition.
 
-The join to `int_customers` uses `LEFT JOIN` deliberately: if a customer row is unexpectedly missing, the order is preserved with `NULL` country rather than silently dropped. `fct_monthly_revenue` already filters `country IS NOT NULL`, so an orphaned order becomes a visible anomaly rather than a hidden revenue loss.
+The join to `stg_customers` uses `LEFT JOIN` deliberately: if a customer row is unexpectedly missing, the order is preserved with `NULL` country rather than silently dropped. `fct_monthly_revenue` already filters `country IS NOT NULL`, so an orphaned order becomes a visible anomaly rather than a hidden revenue loss.
 
 ### Incremental mart
 
@@ -129,7 +127,7 @@ DBT_PROFILES_DIR=. dbt seed && dbt run && dbt test
 
 ```bash
 DBT_PROFILES_DIR=. dbt run --select stg_orders
-DBT_PROFILES_DIR=. dbt run --select int_customers
+DBT_PROFILES_DIR=. dbt run --select stg_customers
 DBT_PROFILES_DIR=. dbt run --select int_orders__labeled
 DBT_PROFILES_DIR=. dbt run --select int_orders__quarantine
 DBT_PROFILES_DIR=. dbt run --select int_orders_enriched

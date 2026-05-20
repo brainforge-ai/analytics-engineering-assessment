@@ -2,42 +2,6 @@ version: 2
 
 models:
 
-  - name: int_customers
-    description: >
-      Adds email_is_shared to each customer row. TRUE when the same email
-      appears against more than one customer_id in stg_customers.
-
-      These rows are not dropped. Each customer_id is still a distinct record,
-      only the email column is shared. Whether that represents the same person
-      using multiple accounts, a household, or an ingest bug is a business
-      decision, not an engineering one. Downstream models can filter or segment
-      on this flag; the resolution does not belong at the pipeline layer.
-
-      The flag is computed here rather than in staging because it requires a
-      self-join and carries business meaning that staging should not encode.
-    columns:
-      - name: customer_id
-        description: Primary key.
-        tests:
-          - unique
-          - not_null
-      - name: email
-        description: Lower-cased, trimmed email from stg_customers.
-      - name: country
-        description: ISO country code.
-        tests:
-          - not_null
-      - name: created_at
-        description: Account creation date.
-      - name: email_is_shared
-        description: >
-          TRUE when this email also appears on at least one other customer_id.
-          The affected rows are kept — only the email is shared, not the full
-          customer record. Dropping them would silently remove valid order
-          history for those customers.
-        tests:
-          - not_null
-
   - name: int_orders__labeled
     description: >
       Assigns a dq_reason to every order row. NULL means clean. Downstream,
@@ -85,7 +49,7 @@ models:
 
   - name: int_orders_enriched
     description: >
-      Clean orders (dq_reason IS NULL, row_num = 1) joined to int_customers with
+      Clean orders (dq_reason IS NULL, row_num = 1) joined to stg_customers with
       is_revenue_recognizable encoded centrally. All revenue and cohort marts
       read from here.
 

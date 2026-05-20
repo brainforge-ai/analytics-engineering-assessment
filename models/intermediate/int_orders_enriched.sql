@@ -32,7 +32,7 @@ customers as (
         country,
         email,
         email_is_shared
-    from {{ ref('int_customers') }}
+    from {{ ref('stg_customers') }}
 
 )
 

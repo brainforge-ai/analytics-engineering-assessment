@@ -35,7 +35,7 @@ models:
 
   - name: stg_customers
     description: >
-      Customers with types cast and email lowercased/trimmed.
+      Customers with types cast, email normalized, and a shared-email flag.
     columns:
       - name: customer_id
         description: Primary key.
@@ -50,6 +50,10 @@ models:
           - not_null
       - name: created_at
         description: Account creation date.
+      - name: email_is_shared
+        description: TRUE when this email also appears on another customer_id.
+        tests:
+          - not_null
 
   - name: stg_products
     description: Products lookup. Type-casting only, no business logic.
