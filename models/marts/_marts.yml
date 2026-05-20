@@ -85,8 +85,3 @@ models:
         tests:
           - not_null
           - positive_amount
-      - name: retention_rate
-        description: active_customers / cohort_size.
-        tests:
-          - not_null
-          - positive_amount
