@@ -24,9 +24,10 @@ parsed as (
 
 ranked as (
 
-    -- Deterministic dedupe: latest updated_at wins; ties break to higher amount.
-    select
-        *,
+    -- Deterministic dedupe: latest update wins; ties broken by higher amount
+    -- so revenue is never silently under-counted on a tied update.    select
+    
+    select *,
         row_number() over (
             partition by order_id
             order by updated_at desc nulls last,
@@ -76,6 +77,5 @@ select
     total_amount,
     currency,
     updated_at,
-    row_num,
     dq_reason
 from labeled
