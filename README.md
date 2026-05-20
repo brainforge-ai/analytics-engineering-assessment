@@ -12,7 +12,7 @@ A dbt + DuckDB analytics engineering project built to solve a realistic e-commer
 
 A short walkthrough of this solution is included in the repository:
 
-[![Watch the walkthrough video](./recording-ae-assessment-slide-ayoade-adegbite-thumbnail.png)](https://youtu.be/XdpuzofjMaM)
+<iframe width="100%" height="400" src="https://www.youtube.com/embed/XdpuzofjMaM" frameborder="0" allowfullscreen></iframe>
 
 
 ## Repository structure
