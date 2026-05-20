@@ -15,7 +15,7 @@ A short walkthrough of this solution is included in the repository:
 <video controls width="720">
   <source src="./recording-ae-assessment-slide-ayoade-adegbite.mp4" type="video/mp4">
   Your browser does not support the video tag. <a href="./recording-ae-assessment-slide-ayoade-adegbite.mp4">Download the video</a>.
-</video>
+</video> 
 
 ## Repository structure
 
