@@ -1,9 +1,7 @@
 -- Customer cohort retention. Grain: one row per (cohort_month, months_since_first_order).
 -- Each customer is assigned to the month of their first revenue-recognised order.
 -- We track how many return in each subsequent month.
---
--- Cohort was chosen over MoM growth (only 2 data points across ~3 months of data)
--- and 30-day rolling (too jittery for small per-country volumes).
+
 with revenue_orders as (
 
     select
@@ -13,6 +11,7 @@ with revenue_orders as (
         total_amount
     from {{ ref('int_orders_enriched') }}
     where is_revenue_recognizable = true
+      and country is not null
 
 ),
 
