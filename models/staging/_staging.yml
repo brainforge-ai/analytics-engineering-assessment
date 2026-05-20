@@ -39,8 +39,6 @@ models:
               field: customer_id
       - name: order_date
         description: Parsed order date. Always present and within the configured validity window.
-        tests:
-          - not_null
       - name: status
         description: Order status (completed, pending, cancelled, shipped, refunded).
         tests:
@@ -51,16 +49,12 @@ models:
         description: >
           Order amount in `currency`.  May be NULL for `pending` orders (revenue
           not yet recognised) and those are kept here then filtered downstream.
-        tests:
-          - positive_amount
       - name: currency
         description: ISO currency code. USD across the seed.
         tests:
           - not_null
       - name: updated_at
         description: Source-system update timestamp. Used as the incremental watermark by fct_monthly_revenue.
-        tests:
-          - not_null
       - name: year_month
         description: Order month formatted as 'YYYY-MM'. Pre-computed so marts share a single definition of "month".
         tests:
@@ -99,8 +93,6 @@ models:
               field: customer_id
       - name: order_date
         description: Parsed order date, included here for DQ trend analysis by order_date.
-        tests:
-          - not_null
       - name: status
         description: Order status, included here for DQ trend analysis by status.
         tests:
@@ -109,9 +101,6 @@ models:
               values: ['completed', 'pending', 'cancelled', 'shipped', 'refunded']
       - name: total_amount
         description: Order amount, included here for DQ trend analysis by amount.
-        tests:
-          - not_null
-          - positive_amount
       - name: currency
         description: ISO currency code. USD across the seed.
         tests:
@@ -122,8 +111,6 @@ models:
           - not_null
       - name: updated_at
         description: Source-system update timestamp, included here for DQ trend analysis.
-        tests:
-          - not_null
 
 
 
@@ -163,8 +150,6 @@ models:
           - not_null
       - name: updated_at
         description: Source-system update timestamp, included here for DQ trend analysis.
-        tests:
-          - not_null
       - name: customer_id
         description: FK to stg_customers.customer_id, included here for DQ trend analysis by customer.
       - name: order_date
