@@ -25,8 +25,7 @@ parsed as (
 ranked as (
 
     -- Deterministic dedupe: latest update wins; ties broken by higher amount
-    -- so revenue is never silently under-counted on a tied update.    select
-    
+    -- so revenue is never silently under-counted on a tied update.
     select *,
         row_number() over (
             partition by order_id
@@ -53,9 +52,9 @@ labeled as (
                 then 'duplicate_order_id'
             when order_date is null
                 then 'invalid_date'
-            when order_date > date '{{ var("max_valid_order_date") }}'
+            when order_date > '{{ var("max_valid_order_date") }}'::date
                 then 'future_date'
-            when order_date < date '{{ var("min_valid_order_date") }}'
+            when order_date < '{{ var("min_valid_order_date") }}'::date
                 then 'stale_date'
             when status = 'completed'
                  and (total_amount is null or total_amount <= 0)
