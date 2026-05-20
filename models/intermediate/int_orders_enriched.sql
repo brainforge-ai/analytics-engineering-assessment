@@ -14,14 +14,12 @@ with orders as (
         order_id,
         customer_id,
         order_date,
-        strftime(order_date, '%Y-%m') as year_month,
+        year_month,
         status,
         total_amount,
         currency,
         updated_at
-    from {{ ref('int_orders__labeled') }}
-    where dq_reason is null
-      and row_num = 1
+    from {{ ref('stg_orders') }}
 
 ),
 

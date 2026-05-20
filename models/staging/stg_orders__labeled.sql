@@ -1,18 +1,24 @@
 -- Assigns a dq_reason to every order row. NULL means the row is clean.
--- Downstream: int_orders_enriched selects WHERE dq_reason IS NULL,
---             int_orders__quarantine selects WHERE dq_reason IS NOT NULL.
-with orders as (
+-- Downstream: stg_orders selects WHERE dq_reason IS NULL,
+--             stg_orders__quarantine selects WHERE dq_reason IS NOT NULL.
+with source as (
+
+    select * from {{ ref('orders') }}
+
+),
+
+parsed as (
 
     select
-        order_id,
-        customer_id,
-        order_date_raw,
-        order_date,
-        status,
-        total_amount,
-        currency,
-        updated_at
-    from {{ ref('stg_orders') }}
+        cast(order_id    as varchar)     as order_id,
+        cast(customer_id as varchar)     as customer_id,
+        cast(order_date  as varchar)     as order_date_raw,
+        try_cast(order_date as date)     as order_date,
+        cast(status      as varchar)     as status,
+        try_cast(total_amount as double) as total_amount,
+        cast(currency    as varchar)     as currency,
+        try_cast(updated_at as date)     as updated_at
+    from source
 
 ),
 
@@ -26,7 +32,7 @@ ranked as (
             order by updated_at desc nulls last,
                      total_amount desc nulls last
         ) as row_num
-    from orders
+    from parsed
 
 ),
 
@@ -41,7 +47,6 @@ labeled as (
         total_amount,
         currency,
         updated_at,
-        row_num,
         case
             when row_num > 1
                 then 'duplicate_order_id'

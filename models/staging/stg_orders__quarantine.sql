@@ -12,5 +12,5 @@ select
     updated_at,
     dq_reason,
     current_timestamp as quarantined_at
-from {{ ref('int_orders__labeled') }}
+from {{ ref('stg_orders__labeled') }}
 where dq_reason is not null

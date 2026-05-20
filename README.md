@@ -29,11 +29,11 @@ A dbt + DuckDB analytics engineering project built to solve a realistic e-commer
 │   │   ├── _staging.yml
 │   │   ├── stg_customers.sql
 │   │   ├── stg_orders.sql
+│   │   ├── stg_orders__labeled.sql
+│   │   ├── stg_orders__quarantine.sql
 │   │   └── stg_products.sql
 │   ├── intermediate/
 │   │   ├── _intermediate.yml
-│   │   ├── int_orders__labeled.sql
-│   │   ├── int_orders__quarantine.sql
 │   │   └── int_orders_enriched.sql
 │   └── marts/
 │       ├── _marts.yml
@@ -49,13 +49,13 @@ A dbt + DuckDB analytics engineering project built to solve a realistic e-commer
 ## What this solution includes
 
 ### Staging layer
-- `stg_orders` — type-cast only; no DQ filtering or deduplication at this layer
+- `stg_orders` — clean, deduplicated orders after staging DQ labeling
+- `stg_orders__labeled` — deduplicates orders and assigns a `dq_reason` to every row (NULL = clean)
+- `stg_orders__quarantine` — rejected rows (where `dq_reason IS NOT NULL`) routed here for DQ monitoring
 - `stg_customers` — type-cast, normalize email, and flag `email_is_shared`; no business-resolution logic
 - `stg_products` — type-cast only
 
 ### Intermediate layer
-- `int_orders__labeled` — deduplicates orders by `order_id` and assigns a `dq_reason` to every row (NULL = clean)
-- `int_orders__quarantine` — rejected rows (where `dq_reason IS NOT NULL`) routed here for DQ monitoring
 - `int_orders_enriched` — clean orders joined to customer attributes; encodes `is_revenue_recognizable` once for all downstream marts
 
 ### Marts
@@ -69,9 +69,9 @@ A dbt + DuckDB analytics engineering project built to solve a realistic e-commer
 
 ## Key project decisions
 
-### Data quality: label and split at the intermediate layer
+### Data quality: label and split at the staging layer
 
-Rather than silently filtering bad rows, `int_orders__labeled` assigns a `dq_reason` to every order:
+Rather than silently filtering bad rows, `stg_orders__labeled` assigns a `dq_reason` to every order:
 
 | Reason code | Condition |
 |---|---|
@@ -82,8 +82,8 @@ Rather than silently filtering bad rows, `int_orders__labeled` assigns a `dq_rea
 | `completed_with_bad_amount` | `status = completed` and `total_amount` is null or ≤ 0 |
 | `null_amount_unexpected` | `total_amount` is null on any non-pending status |
 
-Clean rows flow to `int_orders_enriched` (`dq_reason IS NULL`).
-Rejected rows flow to `int_orders__quarantine` (`dq_reason IS NOT NULL`), keeping the count by reason visible for dashboards and alerting.
+Clean rows flow to `stg_orders` (`dq_reason IS NULL`, `row_num = 1`) and then to `int_orders_enriched`.
+Rejected rows flow to `stg_orders__quarantine` (`dq_reason IS NOT NULL`), keeping the count by reason visible for dashboards and alerting.
 
 `pending` orders with null amounts are kept — revenue recognition is handled downstream.
 
@@ -127,9 +127,9 @@ DBT_PROFILES_DIR=. dbt seed && dbt run && dbt test
 
 ```bash
 DBT_PROFILES_DIR=. dbt run --select stg_orders
+DBT_PROFILES_DIR=. dbt run --select stg_orders__labeled
+DBT_PROFILES_DIR=. dbt run --select stg_orders__quarantine
 DBT_PROFILES_DIR=. dbt run --select stg_customers
-DBT_PROFILES_DIR=. dbt run --select int_orders__labeled
-DBT_PROFILES_DIR=. dbt run --select int_orders__quarantine
 DBT_PROFILES_DIR=. dbt run --select int_orders_enriched
 DBT_PROFILES_DIR=. dbt run --select fct_monthly_revenue
 DBT_PROFILES_DIR=. dbt run --select fct_customer_cohorts

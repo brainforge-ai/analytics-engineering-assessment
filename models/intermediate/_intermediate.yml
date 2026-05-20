@@ -1,52 +1,6 @@
 version: 2
 
 models:
-
-  - name: int_orders__labeled
-    description: >
-      Assigns a dq_reason to every order row. NULL means clean. Downstream,
-      int_orders_enriched reads WHERE dq_reason IS NULL and int_orders__quarantine
-      reads WHERE dq_reason IS NOT NULL, keeping both views in lock-step.
-    columns:
-      - name: order_id
-        description: Order identifier (duplicates have row_num > 1).
-        tests:
-          - not_null
-      - name: row_num
-        description: 1 for the canonical row per order_id, >1 for duplicates.
-        tests:
-          - not_null
-      - name: dq_reason
-        description: >
-          NULL = clean. Values: duplicate_order_id, invalid_date, future_date,
-          stale_date, completed_with_bad_amount, null_amount_unexpected.
-
-  - name: int_orders__quarantine
-    description: >
-      Order rows that failed DQ checks, tagged with the reason. Query this model
-      to count rejections by reason over time for DQ dashboards or alerting.
-    columns:
-      - name: order_id
-        description: Order identifier of the rejected row.
-        tests:
-          - not_null
-      - name: dq_reason
-        description: Why the row was rejected.
-        tests:
-          - not_null
-          - accepted_values:
-              values:
-                - invalid_date
-                - future_date
-                - stale_date
-                - completed_with_bad_amount
-                - null_amount_unexpected
-                - duplicate_order_id
-      - name: quarantined_at
-        description: Build timestamp when the row was routed to quarantine.
-        tests:
-          - not_null
-
   - name: int_orders_enriched
     description: >
       Clean orders (dq_reason IS NULL, row_num = 1) joined to stg_customers with
