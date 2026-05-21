@@ -1,0 +1,87 @@
+version: 2
+
+models:
+
+  - name: fct_monthly_revenue
+    description: >
+      Monthly revenue, order count, and AOV by country. Grain is one row per
+      (country, year_month). Built incrementally (append): the model aggregates
+      only revenue-recognizable orders from `int_orders_enriched` (which reads
+      cleaned rows from `stg_orders`) and appends months whose source orders
+      have a newer `updated_at` than the mart's `last_updated_at` watermark.
+      Rejected rows are available in `stg_orders__quarantine` for DQ monitoring.
+      See the model header for the exact incremental SQL and when to run
+      `--full-refresh`.
+    columns:
+      - name: country
+        description: Customer country (ISO code).
+        tests:
+          - not_null
+      - name: year_month
+        description: Calendar month formatted as 'YYYY-MM'.
+        tests:
+          - not_null
+      - name: total_revenue
+        description: Sum of total_amount for revenue-recognised orders in the month.
+        tests:
+          - not_null
+          - positive_amount
+      - name: order_count
+        description: Number of revenue-recognised orders in the month.
+        tests:
+          - not_null
+          - positive_amount
+      - name: avg_order_value
+        description: total_revenue / order_count.
+        tests:
+          - not_null
+      - name: last_updated_at
+        description: Max updated_at of the orders aggregated into this row. Watermark for the next incremental run.
+        tests:
+          - not_null
+      - name: built_at
+        description: Timestamp this row was last rebuilt by dbt.
+        tests:
+          - not_null
+
+  - name: fct_customer_cohorts
+    description: >
+      Customer cohort retention.  Each customer is assigned to the calendar
+      month of their first revenue-recognised order (their cohort).  For
+      every subsequent month they place an order, we record their activity
+      against `months_since_first_order`.  Grain is one row per
+      (cohort_month, months_since_first_order).
+
+    columns:
+      - name: cohort_month
+        description: "Calendar month (YYYY-MM) of each customer's first revenue-recognised order."
+        tests:
+          - not_null
+      - name: months_since_first_order
+        description: "Whole months between order_date and the cohort customer's first_order_date. 0 = same month."
+        tests:
+          - not_null
+      - name: cohort_size
+        description: Number of customers in the cohort (constant per cohort_month).
+        tests:
+          - not_null
+          - positive_amount
+      - name: active_customers
+        description: Distinct customers from the cohort who placed a revenue-recognised order in this offset month.
+        tests:
+          - not_null
+          - positive_amount
+      - name: retention_rate
+        description: active_customers / cohort_size.
+        tests:
+          - not_null
+      - name: cohort_revenue
+        description: Sum of total_amount placed by cohort customers at this offset.
+        tests:
+          - not_null
+          - positive_amount
+      - name: avg_order_value
+        description: Mean total_amount across cohort orders at this offset.
+        tests:
+          - not_null
+          - positive_amount

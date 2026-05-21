@@ -1,0 +1,67 @@
+version: 2
+
+models:
+
+  - name: int_orders_enriched
+    description: >
+      Orders joined to customer attributes (country, email flags) with one
+      business rule encoded centrally: `is_revenue_recognizable`.  Revenue and
+      cohort marts both read from here so the rule lives in exactly one place.
+
+      Revenue recognition assumption (revisit with Finance):
+        * `completed`, `shipped`     -> recognised
+        * `pending`                  -> NOT yet recognised
+        * `cancelled`, `refunded`    -> NOT recognised
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: FK to stg_customers.customer_id.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: country
+        description: Customer country at time of build. May be NULL if customer row is missing.
+      - name: order_date
+        description: Order date.
+        tests:
+          - not_null
+      - name: year_month
+        description: "Calendar month as 'YYYY-MM' string derived from order_date."
+        tests:
+          - not_null
+      - name: status
+        description: Order status.
+        tests:
+          - not_null
+      - name: total_amount
+        description: Order amount. May be NULL for pending orders.
+      - name: updated_at
+        description: Source-system update timestamp; the watermark for incremental marts.
+        tests:
+          - not_null
+      - name: is_revenue_recognizable
+        description: TRUE when status is in (completed, shipped). Single source of truth for revenue logic.
+        tests:
+          - not_null
+      - name: email_is_shared
+        description: >
+          TRUE when the customer's email address is shared with at least one other customer. 
+          This is a flag, not a filter: shared emails are common (e.g. spouses sharing an email address) 
+          and we want to keep all the customers, but we also want to flag that the email is shared 
+          for any analysis that cares about unique email addresses.
+        tests:
+          - not_null
+      - name: email
+        description: Customer email address, lower-cased and trimmed. May be NULL if customer row is missing.
+        tests:
+          - not_null
+      - name: currency
+        description: ISO currency code. USD across the seed.
+        tests:
+          - not_null

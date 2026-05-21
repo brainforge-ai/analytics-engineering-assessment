@@ -1,8 +1,12 @@
--- TODO: Implement staging model for orders.
--- Handle data quality issues per CHALLENGE.md sect 3.1:
---   - Invalid/future/old dates (filter or flag)
---   - Null amounts (filter or default)
---   - Duplicate order_ids (keep most recent by updated_at)
--- Replace the pass-through below with your implementation.
-
-select * from {{ ref('orders') }}
+-- Clean orders only; rejected rows flow to stg_orders__quarantine.
+select
+    order_id,
+    customer_id,
+    order_date,
+    status,
+    total_amount,
+    currency,
+    updated_at,
+    strftime(order_date, '%Y-%m') as year_month
+from {{ ref('stg_orders__labeled') }}
+where dq_reason is null

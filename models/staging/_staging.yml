@@ -1,0 +1,215 @@
+version: 2
+
+models:
+
+  - name: stg_orders
+    description: >
+      Clean, deduplicated orders that passed every staging-layer data-quality
+      check.  Rows rejected by those checks are not dropped silently, they
+      live in `stg_orders__quarantine` model with a reason code so quality can be
+      monitored over time.
+
+      Data-quality decisions made here:
+        * Invalid date strings (e.g. 'invalid_date') are parsed with try_cast
+          and end up in quarantine as `invalid_date`.
+        * Order dates outside [min_valid_order_date, max_valid_order_date]
+          (configured in dbt_project.yml vars) are quarantined as `future_date`
+          or `stale_date`.
+        * Completed orders with NULL or non-positive amounts are quarantined
+          as `completed_with_bad_amount`, otherwise they would inflate revenue.
+        * NULL amounts on non-pending statuses are quarantined; NULL amounts
+          on `pending` orders are expected (revenue not yet recognised) and
+          are kept here for downstream revenue logic to filter.
+        * Duplicate order_ids are deduped, keeping the latest by `updated_at`
+          (tied updates break to higher `total_amount` to avoid silently
+          under-counting revenue).  The losing rows are routed to quarantine
+          with reason `duplicate_order_id`.
+    columns:
+      - name: order_id
+        description: Primary key. Unique per order after deduplication.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: FK to stg_customers.customer_id.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: order_date
+        description: Parsed order date. Always present and within the configured validity window.
+      - name: status
+        description: Order status (completed, pending, cancelled, shipped, refunded).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['completed', 'pending', 'cancelled', 'shipped', 'refunded']
+      - name: total_amount
+        description: >
+          Order amount in `currency`.  May be NULL for `pending` orders (revenue
+          not yet recognised) and those are kept here then filtered downstream.
+      - name: currency
+        description: ISO currency code. USD across the seed.
+        tests:
+          - not_null
+      - name: updated_at
+        description: Source-system update timestamp. Used as the incremental watermark by fct_monthly_revenue.
+      - name: year_month
+        description: Order month formatted as 'YYYY-MM'. Pre-computed so marts share a single definition of "month".
+        tests:
+          - not_null
+
+  - name: stg_orders__labeled
+    description: >
+      Assigns a dq_reason to every order row. NULL means clean. Downstream,
+      int_orders_enriched uses stg_orders WHERE dq_reason IS NULL and stg_orders__quarantine
+      reads WHERE dq_reason IS NOT NULL, keeping both views in lock-step.
+    columns:
+      - name: order_id
+        description: Order identifier (duplicates have row_num > 1).
+        tests:
+          - not_null
+
+      - name: dq_reason
+        description: >
+          NULL = clean. Values: duplicate_order_id, invalid_date, future_date,
+          stale_date, completed_with_bad_amount, null_amount_unexpected.
+        tests:
+          - accepted_values:
+              values:
+                - duplicate_order_id
+                - invalid_date
+                - future_date
+                - stale_date
+                - completed_with_bad_amount
+                - null_amount_unexpected
+      - name: customer_id
+        description: FK to stg_customers.customer_id, included here for DQ trend analysis by customer.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: order_date
+        description: Parsed order date, included here for DQ trend analysis by order_date.
+      - name: status
+        description: Order status, included here for DQ trend analysis by status.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['completed', 'pending', 'cancelled', 'shipped', 'refunded']
+      - name: total_amount
+        description: Order amount, included here for DQ trend analysis by amount.
+      - name: currency
+        description: ISO currency code. USD across the seed.
+        tests:
+          - not_null
+      - name: order_date_raw
+        description: Original order_date string from raw data, included here for debugging parsing issues.
+        tests:
+          - not_null
+      - name: updated_at
+        description: Source-system update timestamp, included here for DQ trend analysis.
+
+
+
+
+
+  - name: stg_orders__quarantine
+    description: >
+      Rows from raw orders that failed one of the staging DQ rules, tagged
+      with the reason.  Treated as a **metric** (count by reason over time). 
+      Use this table to build external DQ dashboards.
+
+      Reason codes:
+        * `invalid_date`               -- order_date could not be parsed.
+        * `future_date`                -- order_date later than max_valid_order_date var.
+        * `stale_date`                 -- order_date earlier than min_valid_order_date var.
+        * `completed_with_bad_amount`  -- status='completed' and amount NULL or <= 0.
+        * `null_amount_unexpected`     -- amount NULL on a non-pending status.
+        * `duplicate_order_id`         -- a duplicate of an order_id kept in stg_orders.
+    columns:
+      - name: order_id
+        description: Order id (may appear in both stg_orders and quarantine if it was a duplicate).
+      - name: dq_reason
+        description: Why the row was quarantined. One of the codes above.
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - invalid_date
+                - future_date
+                - stale_date
+                - completed_with_bad_amount
+                - null_amount_unexpected
+                - duplicate_order_id
+      - name: quarantined_at
+        description: Timestamp the row was routed to quarantine (build time).
+        tests:
+          - not_null
+      - name: updated_at
+        description: Source-system update timestamp, included here for DQ trend analysis.
+      - name: customer_id
+        description: FK to stg_customers.customer_id, included here for DQ trend analysis by customer.
+      - name: order_date
+        description: Parsed order date, included here for DQ trend analysis by order_date.
+      - name: status
+        description: Order status, included here for DQ trend analysis by status.
+      - name: total_amount
+        description: Order amount, included here for DQ trend analysis by amount.
+      - name: currency
+        description: ISO currency code. USD across the seed.
+      - name: order_date_raw
+        description: Original order_date string from raw data, included here for debugging parsing issues.
+ 
+
+  - name: stg_customers
+    description: >
+      Customers, deduplicated on `customer_id` (the PK).  Duplicate emails are
+      **not** merged or dropped, but they are flagged via `email_is_shared`
+      because the right resolution (real person / household / ingest bug) is a
+      business call.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: Lower-cased, trimmed email. May be shared across `customer_ids`; see `email_is_shared`.
+      - name: email_is_shared
+        description: >
+          TRUE when this email also appears against at least one other customer_id. 
+          This is a flag, not a filter: shared emails are common (e.g. spouses sharing an email address) 
+          and we want to keep all the customers, but we also want to flag that the email is shared 
+          for any analysis that cares about unique email addresses.
+        tests:
+          - not_null
+      - name: country
+        description: ISO country code (US, UK, CA, DE, FR, AU, JP in this seed).
+        tests:
+          - not_null
+      - name: created_at
+        description: Account creation date.
+
+  - name: stg_products
+    description: Products lookup. Type-casting only, no business logic.
+    columns:
+      - name: product_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: Display name. Renamed from raw `name` for unambiguous joins.
+        tests:
+          - not_null
+      - name: category
+        description: Product category.
+        tests:
+          - not_null
+      - name: unit_price
+        description: List price in USD.
+        tests:
+          - positive_amount

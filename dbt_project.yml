@@ -37,3 +37,9 @@ models:
 tests:
   ae_assessment:
     +severity: error
+
+vars:
+  # Validity window for order dates. Rows outside this window are quarantined
+  # rather than dropped silently. Tune per environment / source-system SLA.
+  min_valid_order_date: '2023-01-01'
+  max_valid_order_date: '2024-04-01'
