@@ -1,0 +1,162 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: >
+      Grain: one row per order_id (after deduplication).
+
+      Cleaned and deduplicated orders from the raw orders seed.
+      Data quality rules applied:
+      (1) Rows with unparseable order_date ('invalid_date') are excluded via TRY_CAST.
+      (2) Orders outside Q1 2024 (before 2024-01-01 or after 2024-03-31) are excluded;
+          this removes ~12 historical 2020 outliers and ~17 future-dated rows.
+      (3) Duplicate order_ids are resolved by keeping the most-recent updated_at;
+          where updated_at ties (ord_0501), the higher total_amount is kept as the
+          corrected value.
+      (4) NULL total_amount values are preserved as NULL — these only appear on
+          pending orders and are excluded from revenue calculations downstream via
+          the is_revenue_eligible flag in int_orders.
+    columns:
+      - name: order_id
+        description: Unique order identifier (primary key after deduplication).
+        data_tests:
+          - unique
+          - not_null
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: "^ord_[0-9]{4}$"
+
+      - name: customer_id
+        description: Foreign key to stg_customers.customer_id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: "^cust_[0-9]{3}$"
+
+      - name: order_date
+        description: >
+          Order placement date (DATE). Restricted to 2024-01-01 through 2024-03-31.
+          Unparseable source values are excluded.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: "'2024-01-01'"
+                max_value: "'2024-03-31'"
+
+      - name: status
+        description: "Order lifecycle status: completed, pending, cancelled, shipped, refunded."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              arguments:
+                value_set: ['completed', 'pending', 'cancelled', 'shipped', 'refunded']
+
+      - name: total_amount
+        description: >
+          Order value in USD. NULL for some pending orders (source data quality issue —
+          amount not yet captured). Zero/near-zero amounts appear only on cancelled orders.
+        data_tests:
+          # Mirrors the logic in tests/test_completed_orders_positive_amount.sql.
+          # row_condition filters to completed-only rows before the range check runs.
+          # strictly: true enforces > 0 (exclusive lower bound).
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: true
+                row_condition: "status = 'completed'"
+
+      - name: currency
+        description: Transaction currency. All source records are USD.
+
+      - name: updated_at
+        description: >
+          Last-updated date for this order record. Used as the watermark for incremental
+          loading in fct_monthly_revenue. Valid orders may have updated_at in April 2024+
+          even when order_date is in Q1 2024.
+        data_tests:
+          - not_null
+
+  - name: stg_customers
+    description: >
+      Grain: one row per customer_id.
+
+      Customer records from the raw customers seed. All 100 customer_ids are retained
+      (including the 4 pairs that share a duplicate email address) to preserve referential
+      integrity with stg_orders. The is_primary_record flag marks the canonical customer
+      per email (earliest created_at, then lowest customer_id as tiebreaker).
+      Downstream unique-customer analysis should filter on is_primary_record = true.
+    columns:
+      - name: customer_id
+        description: Unique customer identifier (primary key).
+        data_tests:
+          - unique
+          - not_null
+
+      - name: email
+        description: >
+          Customer email address. Not unique in source — 4 pairs of customers share an
+          email. Use is_primary_record to identify the canonical record per email.
+        data_tests:
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: "^[^@]+@[^@]+\\.[^@]+$"
+
+      - name: country
+        description: Two-letter country code (CA, US, UK, DE, FR, AU, JP).
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              arguments:
+                value_set: ['CA', 'US', 'UK', 'DE', 'FR', 'AU', 'JP']
+
+      - name: is_primary_record
+        description: >
+          TRUE if this customer_id is the earliest record for its email address.
+          FALSE for the 4 secondary/duplicate-email customers (cust_092, cust_096,
+          cust_098, cust_100). All still appear in this model to preserve FK constraints.
+        data_tests:
+          - not_null
+
+      - name: created_at
+        description: Date the customer account was created.
+
+  - name: stg_products
+    description: >
+      Grain: one row per product_id.
+
+      Product catalog from the raw products seed. No data quality issues detected.
+      The source column 'name' is renamed to product_name for clarity.
+    columns:
+      - name: product_id
+        description: Unique product identifier (primary key).
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_name
+        description: Human-readable product name (renamed from 'name' in source).
+        data_tests:
+          - not_null
+
+      - name: category
+        description: "Product category: Electronics, Books, Home, Office, Apparel, Sports."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              arguments:
+                value_set: ['Electronics', 'Books', 'Home', 'Office', 'Apparel', 'Sports']
+
+      - name: unit_price
+        description: Product price in USD.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: true
