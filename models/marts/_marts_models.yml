@@ -1,0 +1,112 @@
+version: 2
+
+models:
+  - name: fct_monthly_revenue
+    description: >
+      Grain: one row per country per calendar month (country × order_year_month).
+
+      The primary revenue reporting table. Answers the question: "How much did we
+      earn, from how many orders, in each country each month?" Use this table for
+      monthly revenue dashboards, country performance tracking, and period-over-period
+      comparisons.
+
+      Only completed and shipped orders with a positive amount are counted as revenue.
+      Pending, cancelled, and refunded orders are excluded — they exist in the source
+      data but do not contribute to any figures here.
+
+      The table is rebuilt incrementally: when historical orders are amended (e.g. a
+      status correction), the affected month is fully recomputed so figures are always
+      accurate. Run `dbt run --select fct_monthly_revenue --full-refresh` to rebuild
+      from scratch. For month-over-month growth rates, see fct_mom_revenue.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [country, order_year_month]
+    columns:
+      - name: country
+        description: Two-letter customer country code (e.g. 'US', 'DE').
+        data_tests:
+          - not_null
+
+      - name: order_year_month
+        description: >
+          Calendar month formatted as YYYY-MM (e.g. '2024-01'). Together with country,
+          forms the unique grain of this table.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: "^[0-9]{4}-[0-9]{2}$"
+
+      - name: total_revenue
+        description: >
+          Sum of total_amount for all revenue-eligible orders (completed or shipped,
+          positive amount) in this country-month.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: true
+
+      - name: order_count
+        description: Count of revenue-eligible orders in this country-month.
+        data_tests:
+          - not_null
+
+      - name: avg_order_value
+        description: Average revenue per eligible order (total_revenue / order_count).
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: true
+
+      - name: max_updated_at
+        description: >
+          Maximum updated_at across all eligible orders contributing to this row.
+          Used as the watermark for the next incremental run.
+        data_tests:
+          - not_null
+
+  - name: fct_mom_revenue
+    description: >
+      Grain: one row per country per calendar month (country × order_year_month).
+
+      Revenue trend table showing whether each country is growing or declining
+      month-over-month. Answers the question: "Compared to last month, did revenue
+      go up or down, and by how much?" Use this table for executive trend reports,
+      identifying high-growth or at-risk markets, and flagging unusual revenue swings.
+
+      Extends fct_monthly_revenue with two additional fields: prior_month_revenue
+      (the previous month's total for that country) and mom_growth_pct (the change
+      expressed as a decimal ratio, e.g. 0.15 = +15%). mom_growth_pct is NULL for
+      a country's first month in the data since there is no prior period to compare.
+
+      Implemented as a view so growth rates are always computed over the full and
+      current revenue history — recalculating from a partial snapshot would produce
+      misleading percentages.
+    columns:
+      - name: country
+        description: Two-letter customer country code.
+
+      - name: order_year_month
+        description: Calendar month as YYYY-MM.
+
+      - name: total_revenue
+        description: Revenue for this country-month.
+
+      - name: order_count
+        description: Eligible order count for this country-month.
+
+      - name: avg_order_value
+        description: Average order value for this country-month.
+
+      - name: prior_month_revenue
+        description: Revenue in the prior data-series month for this country. NULL for first period.
+
+      - name: mom_growth_pct
+        description: >
+          (total_revenue - prior_month_revenue) / prior_month_revenue as a decimal ratio.
+          NULL for the first period or when prior_month_revenue is zero.

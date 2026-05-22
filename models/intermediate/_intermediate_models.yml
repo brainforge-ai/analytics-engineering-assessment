@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: int_orders
+    description: >
+      Grain: one row per order_id.
+
+      Orders enriched with customer country and two computed fields: year_month
+      (YYYY-MM string for monthly grouping, derived from order_date) and
+      is_revenue_eligible (true for completed or shipped orders with a positive
+      total_amount). This is the single upstream source for fct_monthly_revenue.
+      Refunded, pending, and cancelled orders are retained but marked ineligible
+      so downstream models can apply their own filters.
+
+      Join note: stg_customers is joined on customer_id (not email), so the
+      is_primary_record flag from stg_customers is intentionally NOT applied here.
+      Filtering to is_primary_record = true would silently drop orders from the
+      4 duplicate-email customers (cust_092, cust_096, cust_098, cust_100) from
+      revenue calculations. Those orders are real and must be counted. The flag
+      is scoped to email-level customer analytics (e.g. distinct customer counts),
+      not order eligibility.
+    columns:
+      - name: order_id
+        description: Unique order identifier.
+        data_tests:
+          - unique
+          - not_null
+
+      - name: country
+        description: Customer country code, joined from stg_customers.
+        data_tests:
+          - not_null
+
+      - name: order_year_month
+        description: Order month and year as YYYY-MM (e.g. '2024-01'). Derived from order_date.
+        data_tests:
+          - not_null
+
+      - name: is_revenue_eligible
+        description: >
+          True when status is 'completed' or 'shipped' AND total_amount > 0.
+          Guards against null amounts and non-revenue statuses in aggregation.
+        data_tests:
+          - not_null

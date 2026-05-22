@@ -13,3 +13,8 @@ logs/
 .vscode/
 *.swp
 *.swo
+.venv/
+.user.yml
+
+# Local
+analyses/

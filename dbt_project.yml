@@ -34,6 +34,9 @@ models:
       +schema: marts
       +materialized: table
 
+vars:
+  revenue_eligible_statuses: ['completed', 'shipped']
+
 tests:
   ae_assessment:
     +severity: error
