@@ -54,17 +54,17 @@ The task uses **dbt + DuckDB** so everything runs locally.
 
 ## Submission instructions
 
-1. **Fork** this repository (you'll receive access once selected for the challenge).
-2. Create a new branch named after yourself on your fork (e.g. `feature/jane-doe-solution`).
+1. **Use this template** to create your own repository (choose **Private**).
+2. Create a new branch named after yourself in your repository (e.g. `feature/jane-doe-solution`).
 3. Implement your solution in your branch (staging with data quality, incremental mart, rolling metrics, tests, docs).
 4. **Do not open a pull request against `brainforge-ai`.**
-5. Add a short solution note to your fork's `README.md` covering:
+5. Add a short solution note to your repository's `README.md` covering:
    - How to run the project (from project root: `DBT_PROFILES_DIR=. dbt seed && dbt run && dbt test`).
    - Your data quality decisions (what you filtered, why, any edge cases).
    - Your incremental strategy and why you chose it.
    - Your choice of complex metric (rolling/MoM/cohort) and the SQL approach.
    - Optional: link to a short Loom (5–10 min) walking through your approach.
-6. Email the fork URL and branch name to your recruiting contact.
+6. Email the repository URL and branch name to your recruiting contact.
 
 ---
 
